@@ -132,16 +132,20 @@ export default function ContactDetails() {
             onClick={() => toggleFavorite(contact.id)}
             className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all ${
               contact.isFavorite
-                ? 'bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100'
-                : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                ? "bg-amber-50 border-amber-300 text-amber-700 hover:bg-amber-100"
+                : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
             }`}
           >
             <Star
               className={`w-4 h-4 ${
-                contact.isFavorite ? 'fill-amber-500 text-amber-500' : 'text-slate-400'
+                contact.isFavorite
+                  ? "fill-amber-500 text-amber-500"
+                  : "text-slate-400"
               }`}
             />
-            <span>{contact.isFavorite ? 'Favourited' : 'Add to Favourites'}</span>
+            <span>
+              {contact.isFavorite ? "Favourited" : "Add to Favourites"}
+            </span>
           </button>
 
           {/* Edit */}
@@ -172,13 +176,16 @@ export default function ContactDetails() {
 
         <div className="px-6 pb-6 pt-0 relative">
           {/* Avatar and name header */}
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-12 mb-4">
-            <div className="flex items-end gap-4">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-700 text-white font-display font-bold text-2xl flex items-center justify-center shadow-lg border-4 border-white shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-4">
+            <div className="flex items-start gap-4">
+              {/* Only the avatar moves up into the banner */}
+              <div className="-mt-12 w-20 h-20 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-700 text-white font-display font-bold text-2xl flex items-center justify-center shadow-lg border-4 border-white shrink-0">
                 {getInitials(contact.firstName, contact.lastName)}
               </div>
-              <div>
-                <div className="flex items-center gap-2">
+
+              {/* Name sits below the banner */}
+              <div className="pt-3">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="text-2xl font-display font-bold text-slate-900 tracking-tight">
                     {contact.firstName} {contact.lastName}
                   </h1>
@@ -192,14 +199,18 @@ export default function ContactDetails() {
                   {contact.designation && <span>{contact.designation}</span>}
                   {contact.designation && contact.company && <span>at</span>}
                   {contact.company && (
-                    <span className="font-medium text-slate-700">{contact.company}</span>
+                    <span className="font-medium text-slate-700">
+                      {contact.company}
+                    </span>
                   )}
-                  {!contact.designation && !contact.company && <span>Personal Contact</span>}
+                  {!contact.designation && !contact.company && (
+                    <span>Personal Contact</span>
+                  )}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 pt-3">
               {contact.isDeleted ? (
                 <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-100 text-rose-700">
                   In Trash / Deleted
@@ -251,7 +262,7 @@ export default function ContactDetails() {
                   {contact.email && (
                     <button
                       type="button"
-                      onClick={() => copyToClipboard(contact.email, 'Email')}
+                      onClick={() => copyToClipboard(contact.email, "Email")}
                       className="text-slate-400 hover:text-slate-600"
                       title="Copy email"
                     >
@@ -267,7 +278,9 @@ export default function ContactDetails() {
                     {contact.email}
                   </a>
                 ) : (
-                  <span className="text-xs text-slate-400 italic">Not specified</span>
+                  <span className="text-xs text-slate-400 italic">
+                    Not specified
+                  </span>
                 )}
               </div>
 
@@ -280,7 +293,7 @@ export default function ContactDetails() {
                   {contact.phone && (
                     <button
                       type="button"
-                      onClick={() => copyToClipboard(contact.phone, 'Phone')}
+                      onClick={() => copyToClipboard(contact.phone, "Phone")}
                       className="text-slate-400 hover:text-slate-600"
                       title="Copy phone"
                     >
@@ -296,7 +309,9 @@ export default function ContactDetails() {
                     {contact.phone}
                   </a>
                 ) : (
-                  <span className="text-xs text-slate-400 italic">Not specified</span>
+                  <span className="text-xs text-slate-400 italic">
+                    Not specified
+                  </span>
                 )}
               </div>
 
@@ -306,7 +321,7 @@ export default function ContactDetails() {
                   <Building2 className="w-3.5 h-3.5" /> Organization
                 </span>
                 <span className="text-sm font-semibold text-slate-800 block">
-                  {contact.company || 'Individual / None'}
+                  {contact.company || "Individual / None"}
                 </span>
               </div>
 
@@ -316,7 +331,7 @@ export default function ContactDetails() {
                   <Briefcase className="w-3.5 h-3.5" /> Role / Title
                 </span>
                 <span className="text-sm font-semibold text-slate-800 block">
-                  {contact.designation || 'None specified'}
+                  {contact.designation || "None specified"}
                 </span>
               </div>
             </div>
@@ -335,7 +350,8 @@ export default function ContactDetails() {
               </div>
             ) : (
               <div className="text-center py-6 text-slate-400 text-xs italic">
-                No notes or remarks saved for this contact yet. Click "Edit" to add some.
+                No notes or remarks saved for this contact yet. Click "Edit" to
+                add some.
               </div>
             )}
           </div>
@@ -353,7 +369,9 @@ export default function ContactDetails() {
             {contact.followUpDate ? (
               <div className="p-3.5 rounded-xl bg-amber-50/50 border border-amber-200/60 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-600 font-medium">Scheduled Date:</span>
+                  <span className="text-xs text-slate-600 font-medium">
+                    Scheduled Date:
+                  </span>
                   <span className="text-xs font-mono font-bold text-slate-900">
                     {contact.followUpDate}
                   </span>
@@ -377,7 +395,9 @@ export default function ContactDetails() {
               </div>
             ) : (
               <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/60 text-center space-y-2">
-                <p className="text-xs text-slate-500">No follow-up reminder is set.</p>
+                <p className="text-xs text-slate-500">
+                  No follow-up reminder is set.
+                </p>
                 <Link
                   to={`/contacts/${contact.id}/edit`}
                   className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700"
@@ -402,12 +422,15 @@ export default function ContactDetails() {
                 <span className="text-slate-400">Created:</span>
                 <span>
                   {contact.createdAt
-                    ? new Date(contact.createdAt).toLocaleDateString(undefined, {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })
-                    : 'Initial seed'}
+                    ? new Date(contact.createdAt).toLocaleDateString(
+                        undefined,
+                        {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        },
+                      )
+                    : "Initial seed"}
                 </span>
               </div>
               {contact.updatedAt && (
@@ -415,16 +438,18 @@ export default function ContactDetails() {
                   <span className="text-slate-400">Last Modified:</span>
                   <span>
                     {new Date(contact.updatedAt).toLocaleDateString(undefined, {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
                     })}
                   </span>
                 </div>
               )}
               <div className="flex justify-between">
                 <span className="text-slate-400">Storage:</span>
-                <span className="text-emerald-600 font-medium">Browser LocalStorage</span>
+                <span className="text-emerald-600 font-medium">
+                  Server (data/contacts.json)
+                </span>
               </div>
             </div>
           </div>
@@ -444,11 +469,12 @@ export default function ContactDetails() {
                 Move Contact to Trash?
               </h3>
               <p className="text-slate-600 text-sm mt-1 leading-relaxed">
-                Are you sure you want to delete{' '}
+                Are you sure you want to delete{" "}
                 <span className="font-semibold text-slate-900">
                   {contact.firstName} {contact.lastName}
                 </span>
-                ? You can restore this contact at any time from the Deleted Contacts menu.
+                ? You can restore this contact at any time from the Deleted
+                Contacts menu.
               </p>
             </div>
 
