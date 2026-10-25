@@ -16,8 +16,6 @@ import ImportCSV from "../pages/ImportCSV.jsx";
 import DeletedContacts from "../pages/DeletedContacts.jsx";
 import Settings from "../pages/Settings.jsx";
 
-// Loads the contacts of the logged-in user.
-// The key makes React load fresh data when a different user logs in.
 function UserDataLayout() {
   const { user } = useAuth();
   return (
