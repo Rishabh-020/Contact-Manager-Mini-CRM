@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import {
   Users,
   Search,
@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useContacts } from '../App.jsx';
 
+
 export default function Contacts() {
   const {
     activeContacts,
@@ -33,6 +34,7 @@ export default function Contacts() {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const filterParam = searchParams.get('filter');
+    const navigate = useNavigate();
 
   // Filter tabs: 'all', 'favourites', 'followups'
   const [activeTab, setActiveTab] = useState(filterParam === 'favourites' ? 'favourites' : 'all');
@@ -170,11 +172,13 @@ export default function Contacts() {
               Contacts Directory
             </h1>
             <span className="text-xs font-semibold px-2.5 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-200/60">
-              {filteredContacts.length} {filteredContacts.length === 1 ? 'contact' : 'contacts'}
+              {filteredContacts.length}{" "}
+              {filteredContacts.length === 1 ? "contact" : "contacts"}
             </span>
           </div>
           <p className="text-slate-500 text-sm mt-1">
-            Browse, search, edit, and organize all personal and professional contacts.
+            Browse, search, edit, and organize all personal and professional
+            contacts.
           </p>
         </div>
 
@@ -196,13 +200,13 @@ export default function Contacts() {
             <button
               type="button"
               onClick={() => {
-                setActiveTab('all');
+                setActiveTab("all");
                 setSearchParams({});
               }}
               className={`px-3 py-1.5 rounded-lg transition-all ${
-                activeTab === 'all'
-                  ? 'bg-white text-slate-900 font-semibold shadow-xs'
-                  : 'hover:text-slate-900'
+                activeTab === "all"
+                  ? "bg-white text-slate-900 font-semibold shadow-xs"
+                  : "hover:text-slate-900"
               }`}
             >
               All Contacts ({activeContacts.length})
@@ -210,28 +214,27 @@ export default function Contacts() {
             <button
               type="button"
               onClick={() => {
-                setActiveTab('favourites');
-                setSearchParams({ filter: 'favourites' });
+                setActiveTab("favourites");
+                setSearchParams({ filter: "favourites" });
               }}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-                activeTab === 'favourites'
-                  ? 'bg-white text-amber-700 font-semibold shadow-xs'
-                  : 'hover:text-slate-900'
+                activeTab === "favourites"
+                  ? "bg-white text-amber-700 font-semibold shadow-xs"
+                  : "hover:text-slate-900"
               }`}
             >
               <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-              <span>Favourites ({activeContacts.filter((c) => c.isFavorite).length})</span>
+              <span>
+                Favourites ({activeContacts.filter((c) => c.isFavorite).length})
+              </span>
             </button>
             <button
               type="button"
-              onClick={() => {
-                setActiveTab('followups');
-                setSearchParams({});
-              }}
+              onClick={() => navigate("/follow-ups")}
               className={`px-3 py-1.5 rounded-lg transition-all ${
-                activeTab === 'followups'
-                  ? 'bg-white text-blue-700 font-semibold shadow-xs'
-                  : 'hover:text-slate-900'
+                activeTab === "followups"
+                  ? "bg-white text-blue-700 font-semibold shadow-xs"
+                  : "hover:text-slate-900"
               }`}
             >
               Follow-ups ({activeContacts.filter((c) => c.followUpDate).length})
@@ -257,21 +260,22 @@ export default function Contacts() {
           </div>
         </div>
 
-        {/* Second row: Search & Tag Filter Pills */}
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 pt-2 border-t border-slate-100">
-          <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        {/* Second row: Search box (own row) and Tag filters (below it) */}
+        <div className="space-y-3 pt-2 border-t border-slate-100">
+          {/* Search box: full width on mobile, max 448px on desktop */}
+          <div className="relative w-full md:max-w-md">
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by name, email, company, or phone..."
-              className="w-full pl-9 pr-8 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 outline-hidden transition-all"
+              className="w-full pl-9 pr-9 py-2.5 text-sm text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
             />
             {searchQuery && (
               <button
                 type="button"
-                onClick={() => setSearchQuery('')}
+                onClick={() => setSearchQuery("")}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
               >
                 <X className="w-4 h-4" />
@@ -281,18 +285,18 @@ export default function Contacts() {
 
           {/* Tag filters */}
           {allTags.length > 0 && (
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-              <span className="text-xs text-slate-400 flex items-center gap-1 pl-1 pr-1 shrink-0">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+              <span className="text-xs text-slate-400 flex items-center gap-1 pr-1 shrink-0">
                 <Tag className="w-3.5 h-3.5" />
                 Tag:
               </span>
               <button
                 type="button"
-                onClick={() => setSelectedTag('ALL')}
+                onClick={() => setSelectedTag("ALL")}
                 className={`text-xs px-2.5 py-1 rounded-lg shrink-0 font-medium transition-colors ${
-                  selectedTag === 'ALL'
-                    ? 'bg-slate-900 text-white'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  selectedTag === "ALL"
+                    ? "bg-slate-900 text-white"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                 }`}
               >
                 All
@@ -301,11 +305,13 @@ export default function Contacts() {
                 <button
                   key={tag}
                   type="button"
-                  onClick={() => setSelectedTag(tag === selectedTag ? 'ALL' : tag)}
+                  onClick={() =>
+                    setSelectedTag(tag === selectedTag ? "ALL" : tag)
+                  }
                   className={`text-xs px-2.5 py-1 rounded-lg shrink-0 font-medium transition-colors ${
                     selectedTag === tag
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      ? "bg-blue-600 text-white"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                   }`}
                 >
                   {tag}
@@ -322,19 +328,21 @@ export default function Contacts() {
           <div className="w-14 h-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
             <Users className="w-7 h-7" />
           </div>
-          <h3 className="text-base font-bold text-slate-800 mb-1">No contacts found</h3>
+          <h3 className="text-base font-bold text-slate-800 mb-1">
+            No contacts found
+          </h3>
           <p className="text-xs text-slate-500 mb-5 leading-relaxed">
-            {searchQuery || selectedTag !== 'ALL' || activeTab !== 'all'
-              ? 'No contacts match your current search and filter criteria.'
-              : 'Your contact list is currently empty.'}
+            {searchQuery || selectedTag !== "ALL" || activeTab !== "all"
+              ? "No contacts match your current search and filter criteria."
+              : "Your contact list is currently empty."}
           </p>
-          {searchQuery || selectedTag !== 'ALL' || activeTab !== 'all' ? (
+          {searchQuery || selectedTag !== "ALL" || activeTab !== "all" ? (
             <button
               type="button"
               onClick={() => {
-                setSearchQuery('');
-                setSelectedTag('ALL');
-                setActiveTab('all');
+                setSearchQuery("");
+                setSelectedTag("ALL");
+                setActiveTab("all");
                 setSearchParams({});
               }}
               className="text-xs font-semibold px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-colors"
@@ -359,7 +367,10 @@ export default function Contacts() {
               <table className="w-full text-left text-sm border-collapse">
                 <thead>
                   <tr className="bg-slate-50/80 text-[11px] font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200/80">
-                    <th scope="col" className="py-3.5 pl-6 pr-3 w-12 text-center">
+                    <th
+                      scope="col"
+                      className="py-3.5 pl-6 pr-3 w-12 text-center"
+                    >
                       Fav
                     </th>
                     <th scope="col" className="py-3.5 px-3">
@@ -377,7 +388,10 @@ export default function Contacts() {
                     <th scope="col" className="py-3.5 px-3">
                       Follow-up
                     </th>
-                    <th scope="col" className="py-3.5 pl-3 pr-6 text-right w-32">
+                    <th
+                      scope="col"
+                      className="py-3.5 pl-3 pr-6 text-right w-32"
+                    >
                       Actions
                     </th>
                   </tr>
@@ -395,14 +409,18 @@ export default function Contacts() {
                           onClick={() => toggleFavorite(contact.id)}
                           className={`p-1.5 rounded-lg transition-colors ${
                             contact.isFavorite
-                              ? 'text-amber-500 hover:text-amber-600'
-                              : 'text-slate-300 hover:text-amber-500'
+                              ? "text-amber-500 hover:text-amber-600"
+                              : "text-slate-300 hover:text-amber-500"
                           }`}
-                          title={contact.isFavorite ? 'Remove favourite' : 'Mark favourite'}
+                          title={
+                            contact.isFavorite
+                              ? "Remove favourite"
+                              : "Mark favourite"
+                          }
                         >
                           <Star
                             className={`w-4 h-4 ${
-                              contact.isFavorite ? 'fill-amber-500' : ''
+                              contact.isFavorite ? "fill-amber-500" : ""
                             }`}
                           />
                         </button>
@@ -431,10 +449,10 @@ export default function Contacts() {
                       {/* Company & Designation */}
                       <td className="py-4 px-3">
                         <div className="text-slate-800 font-medium text-xs">
-                          {contact.company || '—'}
+                          {contact.company || "—"}
                         </div>
                         <div className="text-slate-500 text-xs">
-                          {contact.designation || 'No designation'}
+                          {contact.designation || "No designation"}
                         </div>
                       </td>
 
@@ -454,7 +472,10 @@ export default function Contacts() {
                         {contact.phone && (
                           <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1">
                             <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                            <a href={`tel:${contact.phone}`} className="hover:text-blue-600">
+                            <a
+                              href={`tel:${contact.phone}`}
+                              className="hover:text-blue-600"
+                            >
                               {contact.phone}
                             </a>
                           </div>
@@ -487,7 +508,9 @@ export default function Contacts() {
                         {contact.followUpDate ? (
                           formatFollowUp(contact.followUpDate)
                         ) : (
-                          <span className="text-xs text-slate-400">None set</span>
+                          <span className="text-xs text-slate-400">
+                            None set
+                          </span>
                         )}
                       </td>
 
@@ -545,8 +568,8 @@ export default function Contacts() {
                         {contact.firstName} {contact.lastName}
                       </Link>
                       <span className="text-xs text-slate-500">
-                        {contact.designation ? `${contact.designation} • ` : ''}
-                        {contact.company || 'Individual'}
+                        {contact.designation ? `${contact.designation} • ` : ""}
+                        {contact.company || "Individual"}
                       </span>
                     </div>
                   </div>
@@ -558,7 +581,9 @@ export default function Contacts() {
                   >
                     <Star
                       className={`w-4 h-4 ${
-                        contact.isFavorite ? 'fill-amber-500 text-amber-500' : ''
+                        contact.isFavorite
+                          ? "fill-amber-500 text-amber-500"
+                          : ""
                       }`}
                     />
                   </button>
@@ -641,11 +666,13 @@ export default function Contacts() {
                 Move Contact to Trash?
               </h3>
               <p className="text-slate-600 text-sm mt-1 leading-relaxed">
-                Are you sure you want to delete{' '}
+                Are you sure you want to delete{" "}
                 <span className="font-semibold text-slate-900">
-                  "{contactToDelete.firstName} {contactToDelete.lastName || ''}".trim()
+                  "{contactToDelete.firstName} {contactToDelete.lastName || ""}
+                  ".trim()
                 </span>
-                ? This contact will be placed into the Deleted Contacts bin and can be restored at any time.
+                ? This contact will be placed into the Deleted Contacts bin and
+                can be restored at any time.
               </p>
             </div>
 

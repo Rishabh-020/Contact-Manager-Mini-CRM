@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft,
   User,
@@ -15,11 +15,20 @@ import {
   AlertCircle,
   Save,
   Plus,
-  X
-} from 'lucide-react';
-import { useContacts } from '../App.jsx';
+  X,
+} from "lucide-react";
+import { useContacts } from "../App.jsx";
 
-const SUGGESTED_TAGS = ['Lead', 'Customer', 'Partner', 'Enterprise', 'Tech', 'Design', 'High Value', 'Follow-up'];
+const SUGGESTED_TAGS = [
+  "Lead",
+  "Customer",
+  "Partner",
+  "Enterprise",
+  "Tech",
+  "Design",
+  "High Value",
+  "Follow-up",
+];
 
 export default function ContactForm() {
   const { id } = useParams();
@@ -28,21 +37,21 @@ export default function ContactForm() {
 
   const { contacts, addContact, updateContact } = useContacts();
 
-  // Form State
+  // Form Stateḍ
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    company: '',
-    designation: '',
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    company: "",
+    designation: "",
     tags: [],
-    notes: '',
+    notes: "",
     isFavorite: false,
-    followUpDate: '',
+    followUpDate: "",
   });
 
-  const [newTagInput, setNewTagInput] = useState('');
+  const [newTagInput, setNewTagInput] = useState("");
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notFound, setNotFound] = useState(false);
@@ -53,16 +62,16 @@ export default function ContactForm() {
       const existing = contacts.find((c) => c.id === id);
       if (existing) {
         setFormData({
-          firstName: existing.firstName || '',
-          lastName: existing.lastName || '',
-          email: existing.email || '',
-          phone: existing.phone || '',
-          company: existing.company || '',
-          designation: existing.designation || '',
+          firstName: existing.firstName || "",
+          lastName: existing.lastName || "",
+          email: existing.email || "",
+          phone: existing.phone || "",
+          company: existing.company || "",
+          designation: existing.designation || "",
           tags: Array.isArray(existing.tags) ? [...existing.tags] : [],
-          notes: existing.notes || '',
+          notes: existing.notes || "",
           isFavorite: Boolean(existing.isFavorite),
-          followUpDate: existing.followUpDate || '',
+          followUpDate: existing.followUpDate || "",
         });
       } else {
         setNotFound(true);
@@ -75,7 +84,7 @@ export default function ContactForm() {
     const { name, value, type, checked } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: type === "checkbox" ? checked : value,
     }));
 
     // Clear validation error when user types in that field
@@ -94,7 +103,7 @@ export default function ContactForm() {
         tags: [...prev.tags, trimmed],
       }));
     }
-    setNewTagInput('');
+    setNewTagInput("");
   };
 
   // Remove tag
@@ -111,22 +120,24 @@ export default function ContactForm() {
 
     // 1. First name required
     if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First name is required.';
+      newErrors.firstName = "First name is required.";
     }
 
     // 2. Email format validation (if provided)
     if (formData.email.trim()) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(formData.email.trim())) {
-        newErrors.email = 'Please enter a valid email address (e.g. name@example.com).';
+        newErrors.email =
+          "Please enter a valid email address (e.g. name@example.com).";
       }
     }
 
     // 3. Phone format validation (if provided)
     if (formData.phone.trim()) {
-      const cleanPhone = formData.phone.trim().replace(/[\s\-\(\)\+]/g, '');
+      const cleanPhone = formData.phone.trim().replace(/[\s\-\(\)\+]/g, "");
       if (cleanPhone.length < 7 || !/^\d+$/.test(cleanPhone)) {
-        newErrors.phone = 'Please enter a valid phone number with at least 7 digits.';
+        newErrors.phone =
+          "Please enter a valid phone number with at least 7 digits.";
       }
     }
 
@@ -137,10 +148,10 @@ export default function ContactForm() {
           !c.isDeleted &&
           c.id !== id &&
           c.email &&
-          c.email.trim().toLowerCase() === formData.email.trim().toLowerCase()
+          c.email.trim().toLowerCase() === formData.email.trim().toLowerCase(),
       );
       if (duplicateEmail) {
-        newErrors.email = `A contact with email "${formData.email.trim()}" already exists (${duplicateEmail.firstName} ${duplicateEmail.lastName || ''}).`;
+        newErrors.email = `A contact with email "${formData.email.trim()}" already exists (${duplicateEmail.firstName} ${duplicateEmail.lastName || ""}).`;
       }
     }
 
@@ -150,11 +161,11 @@ export default function ContactForm() {
           !c.isDeleted &&
           c.id !== id &&
           c.phone &&
-          c.phone.trim().replace(/[\s\-\(\)\+]/g, '') ===
-            formData.phone.trim().replace(/[\s\-\(\)\+]/g, '')
+          c.phone.trim().replace(/[\s\-\(\)\+]/g, "") ===
+            formData.phone.trim().replace(/[\s\-\(\)\+]/g, ""),
       );
       if (duplicatePhone) {
-        newErrors.phone = `A contact with this phone number already exists (${duplicatePhone.firstName} ${duplicatePhone.lastName || ''}).`;
+        newErrors.phone = `A contact with this phone number already exists (${duplicatePhone.firstName} ${duplicatePhone.lastName || ""}).`;
       }
     }
 
@@ -163,7 +174,7 @@ export default function ContactForm() {
   };
 
   // Handle Form Submission
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Prevent accidental duplicate submissions
@@ -192,11 +203,11 @@ export default function ContactForm() {
         updateContact(id, payload);
         navigate(`/contacts/${id}`);
       } else {
-        const created = addContact(payload);
+        const created = await addContact(payload);
         navigate(`/contacts/${created.id}`);
       }
     } catch (err) {
-      console.error('Submission failed', err);
+      console.error("Submission failed", err);
       setIsSubmitting(false);
     }
   };
@@ -207,7 +218,9 @@ export default function ContactForm() {
         <div className="w-12 h-12 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
           <AlertCircle className="w-6 h-6" />
         </div>
-        <h2 className="text-lg font-bold text-slate-900 mb-1">Contact Not Found</h2>
+        <h2 className="text-lg font-bold text-slate-900 mb-1">
+          Contact Not Found
+        </h2>
         <p className="text-xs text-slate-500 mb-6">
           The requested contact could not be found or may have been deleted.
         </p>
@@ -227,14 +240,14 @@ export default function ContactForm() {
       {/* Top Header / Back link */}
       <div className="flex items-center justify-between">
         <Link
-          to={isEditMode ? `/contacts/${id}` : '/contacts'}
+          to={isEditMode ? `/contacts/${id}` : "/contacts"}
           className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>{isEditMode ? 'Back to Contact' : 'Back to Contacts'}</span>
+          <span>{isEditMode ? "Back to Contact" : "Back to Contacts"}</span>
         </Link>
         <span className="text-xs text-slate-400 font-mono">
-          {isEditMode ? `Editing ID: ${id.slice(0, 8)}` : 'New CRM Entry'}
+          {isEditMode ? `Editing ID: ${id.slice(0, 8)}` : "New CRM Entry"}
         </span>
       </div>
 
@@ -243,12 +256,12 @@ export default function ContactForm() {
         {/* Card Header */}
         <div className="p-6 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
           <h1 className="text-xl font-display font-bold text-slate-900">
-            {isEditMode ? 'Edit Contact Details' : 'Add New Contact'}
+            {isEditMode ? "Edit Contact Details" : "Add New Contact"}
           </h1>
           <p className="text-slate-500 text-xs sm:text-sm mt-1">
             {isEditMode
-              ? 'Update the profile, tags, contact info, or follow-up status.'
-              : 'Fill in the information below to register a new contact in your CRM.'}
+              ? "Update the profile, tags, contact info, or follow-up status."
+              : "Fill in the information below to register a new contact in your CRM."}
           </p>
         </div>
 
@@ -274,8 +287,8 @@ export default function ContactForm() {
                   placeholder="e.g. Aarav"
                   className={`w-full px-3.5 py-2 text-sm rounded-xl border bg-slate-50/50 focus:bg-white transition-all outline-hidden ${
                     errors.firstName
-                      ? 'border-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-100'
-                      : 'border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
+                      ? "border-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-100"
+                      : "border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   }`}
                 />
                 {errors.firstName && (
@@ -326,8 +339,8 @@ export default function ContactForm() {
                     placeholder="aarav.sharma@example.com"
                     className={`w-full pl-9 pr-3.5 py-2 text-sm rounded-xl border bg-slate-50/50 focus:bg-white transition-all outline-hidden ${
                       errors.email
-                        ? 'border-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-100'
-                        : 'border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
+                        ? "border-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-100"
+                        : "border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                     }`}
                   />
                 </div>
@@ -354,8 +367,8 @@ export default function ContactForm() {
                     placeholder="+91 98765 43210"
                     className={`w-full pl-9 pr-3.5 py-2 text-sm rounded-xl border bg-slate-50/50 focus:bg-white transition-all outline-hidden ${
                       errors.phone
-                        ? 'border-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-100'
-                        : 'border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
+                        ? "border-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-100"
+                        : "border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                     }`}
                   />
                 </div>
@@ -446,7 +459,9 @@ export default function ContactForm() {
                   </span>
                 ))}
                 {formData.tags.length === 0 && (
-                  <span className="text-xs text-slate-400 italic">No tags selected yet</span>
+                  <span className="text-xs text-slate-400 italic">
+                    No tags selected yet
+                  </span>
                 )}
               </div>
 
@@ -457,7 +472,7 @@ export default function ContactForm() {
                   value={newTagInput}
                   onChange={(e) => setNewTagInput(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (e.key === "Enter") {
                       e.preventDefault();
                       handleAddTag(newTagInput);
                     }
@@ -476,7 +491,9 @@ export default function ContactForm() {
 
               {/* Quick Suggestions */}
               <div className="flex flex-wrap items-center gap-1 mt-2">
-                <span className="text-[11px] text-slate-400 mr-1">Suggestions:</span>
+                <span className="text-[11px] text-slate-400 mr-1">
+                  Suggestions:
+                </span>
                 {SUGGESTED_TAGS.map((sug) => (
                   <button
                     key={sug}
@@ -507,7 +524,8 @@ export default function ContactForm() {
                   />
                 </div>
                 <p className="text-[11px] text-slate-400 mt-1">
-                  CRM will highlight this contact when the date is upcoming or due.
+                  CRM will highlight this contact when the date is upcoming or
+                  due.
                 </p>
               </div>
 
@@ -528,8 +546,8 @@ export default function ContactForm() {
                     <Star
                       className={`w-4 h-4 ${
                         formData.isFavorite
-                          ? 'fill-amber-500 text-amber-500'
-                          : 'text-slate-400'
+                          ? "fill-amber-500 text-amber-500"
+                          : "text-slate-400"
                       }`}
                     />
                     <span>Mark as Favourite Contact</span>
@@ -562,7 +580,9 @@ export default function ContactForm() {
           <div className="pt-6 border-t border-slate-100 flex items-center justify-end gap-3">
             <button
               type="button"
-              onClick={() => navigate(isEditMode ? `/contacts/${id}` : '/contacts')}
+              onClick={() =>
+                navigate(isEditMode ? `/contacts/${id}` : "/contacts")
+              }
               className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors"
             >
               Cancel
@@ -572,16 +592,18 @@ export default function ContactForm() {
               type="submit"
               disabled={isSubmitting}
               className={`inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-semibold rounded-xl shadow-xs shadow-blue-600/30 transition-all hover:shadow-md ${
-                isSubmitting ? 'opacity-60 cursor-not-allowed' : 'active:scale-[0.98]'
+                isSubmitting
+                  ? "opacity-60 cursor-not-allowed"
+                  : "active:scale-[0.98]"
               }`}
             >
               <Save className="w-4 h-4" />
               <span>
                 {isSubmitting
-                  ? 'Saving Contact...'
+                  ? "Saving Contact..."
                   : isEditMode
-                  ? 'Update Contact'
-                  : 'Save Contact'}
+                    ? "Update Contact"
+                    : "Save Contact"}
               </span>
             </button>
           </div>
@@ -590,4 +612,3 @@ export default function ContactForm() {
     </div>
   );
 }
-
