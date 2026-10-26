@@ -88,7 +88,7 @@ export default function Home() {
       description:
         'Store names, phone numbers, emails, company roles, social handles, and notes in one unified card.',
       badge: 'Core CRM',
-      gradient: 'from-blue-600 to-cyan-600',
+      gradient: 'from-blue-600 to-indigo-600',
     },
     {
       icon: CalendarClock,
@@ -165,16 +165,6 @@ export default function Home() {
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto space-y-6">
-            {/* Top Pill */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-200/80 shadow-xs">
-              <span className="flex h-2 w-2 rounded-full bg-blue-600 animate-pulse" />
-              <span className="text-xs font-semibold text-blue-800">
-                Next-Gen Relationship Management
-              </span>
-              <span className="text-blue-300">•</span>
-              <span className="text-xs font-medium text-blue-600">v2.0 Active</span>
-            </div>
-
             {/* Main Title */}
             <h1 className="font-display text-4xl sm:text-5xl lg:text-6xl font-extrabold text-slate-900 tracking-tight leading-[1.15]">
               Manage Contacts.{' '}
@@ -271,33 +261,30 @@ export default function Home() {
                   <button
                     type="button"
                     onClick={() => setActiveTab('dashboard')}
-                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
-                      activeTab === 'dashboard'
-                        ? 'bg-blue-600 text-white shadow-xs'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
+                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${activeTab === 'dashboard'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-slate-400 hover:text-white'
+                      }`}
                   >
                     Dashboard View
                   </button>
                   <button
                     type="button"
                     onClick={() => setActiveTab('contacts')}
-                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
-                      activeTab === 'contacts'
-                        ? 'bg-blue-600 text-white shadow-xs'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
+                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${activeTab === 'contacts'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-slate-400 hover:text-white'
+                      }`}
                   >
                     Contact Roster
                   </button>
                   <button
                     type="button"
                     onClick={() => setActiveTab('pipeline')}
-                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
-                      activeTab === 'pipeline'
-                        ? 'bg-blue-600 text-white shadow-xs'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
+                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${activeTab === 'pipeline'
+                      ? 'bg-blue-600 text-white shadow-xs'
+                      : 'text-slate-400 hover:text-white'
+                      }`}
                   >
                     Follow-up Radar
                   </button>
@@ -730,9 +717,8 @@ export default function Home() {
                 >
                   <span>{faq.q}</span>
                   <ChevronDown
-                    className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${
-                      isOpen ? 'rotate-180 text-blue-600' : ''
-                    }`}
+                    className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180 text-blue-600' : ''
+                      }`}
                   />
                 </button>
                 {isOpen && (
