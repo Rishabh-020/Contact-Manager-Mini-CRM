@@ -93,6 +93,7 @@ import {
   EyeOff,
   ArrowRight,
   AlertCircle,
+  ArrowLeft,
 } from "lucide-react";
 import { useAuth } from "../auth/AuthContext.jsx";
 
@@ -156,6 +157,25 @@ export default function Login() {
       <div className="pointer-events-none absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-indigo-300/30 blur-3xl" />
 
       <div className="relative w-full max-w-md">
+        <div className="mb-3 flex items-center justify-between px-1">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-blue-600 transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back to Home</span>
+          </Link>
+          <div className="flex items-center gap-3 text-xs text-slate-500">
+            <Link to="/about" className="hover:text-blue-600 transition-colors">
+              About
+            </Link>
+            <span>•</span>
+            <Link to="/contact" className="hover:text-blue-600 transition-colors">
+              Support
+            </Link>
+          </div>
+        </div>
+
         <div className="bg-white/90 backdrop-blur-xl rounded-3xl shadow-2xl shadow-slate-300/50 border border-white p-8 space-y-6">
           {/* Logo and title */}
           <div className="text-center space-y-3">

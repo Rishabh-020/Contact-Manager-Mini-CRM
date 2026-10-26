@@ -1,9 +1,13 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+import PublicLayout from "../layouts/PublicLayout.jsx";
 import MainLayout from "../layouts/MainLayout.jsx";
 import ContactProvider from "../context/ContactProvider.jsx";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { RequireAuth, GuestOnly } from "./ProtectedRoute.jsx";
+import Home from "../pages/Home.jsx";
+import About from "../pages/About.jsx";
+import Contact from "../pages/Contact.jsx";
 import Login from "../pages/Login.jsx";
 import Register from "../pages/Register.jsx";
 import Dashboard from "../pages/Dashboard.jsx";
@@ -28,14 +32,22 @@ function UserDataLayout() {
 export default function AppRoutes() {
   return (
     <Routes>
+      {/* Public Pages: Home, About Us, Contact Us */}
+      <Route element={<PublicLayout />}>
+        <Route path="/" element={<Home />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+      </Route>
+
+      {/* Guest-only routes */}
       <Route element={<GuestOnly />}>
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
       </Route>
 
+      {/* Authenticated CRM routes */}
       <Route element={<RequireAuth />}>
         <Route element={<UserDataLayout />}>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/contacts" element={<Contacts />} />
           <Route path="/contacts/new" element={<ContactForm />} />
@@ -49,7 +61,9 @@ export default function AppRoutes() {
         </Route>
       </Route>
 
+      {/* Fallback to Home */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
+
