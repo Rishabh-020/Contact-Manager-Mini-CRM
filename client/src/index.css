@@ -3,22 +3,31 @@
 :root {
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   --font-display: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
-  --color-brand-50: #eff6ff;
-  --color-brand-100: #dbeafe;
-  --color-brand-200: #bfdbfe;
-  --color-brand-500: #3b82f6;
-  --color-brand-600: #2563eb;
-  --color-brand-700: #1d4ed8;
+  --color-brand-50: #fdf2f4;
+  --color-brand-100: #fce4e8;
+  --color-brand-200: #f8cbd4;
+  --color-brand-300: #f1a1b3;
+  --color-brand-400: #e26482;
+  --color-brand-500: #c52e51;
+  --color-brand-600: #9e1b38;
+  --color-brand-700: #83132c;
+  --color-brand-800: #6b0f24;
+  --color-brand-900: #540c1c;
 }
 
 body {
   font-family: var(--font-sans);
-  background-color: #f8fafc;
+  background-color: #faf7f8;
   color: #0f172a;
 }
 
 .font-display {
   font-family: var(--font-display);
+}
+
+::selection {
+  background-color: #f8cbd4;
+  color: #540c1c;
 }
 
 ::-webkit-scrollbar {
@@ -27,14 +36,14 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: #fdf2f4;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #e5bdc5;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #c58694;
 }
