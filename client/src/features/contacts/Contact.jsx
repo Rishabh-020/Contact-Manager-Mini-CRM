@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Mail,
-  Phone,
   MapPin,
   Clock,
   Send,
@@ -10,14 +9,12 @@ import {
   Copy,
   Check,
   AlertCircle,
-  HelpCircle,
   ChevronDown,
   Sparkles,
-  MessageSquare,
   ArrowRight,
   Inbox
 } from 'lucide-react';
-import { useAuth } from '../auth/AuthContext.jsx';
+import { useAuth } from '../../auth/AuthContext.jsx';
 
 export default function Contact() {
   const { user } = useAuth();
@@ -353,9 +350,8 @@ export default function Contact() {
                     </span>
                   </div>
                   <ChevronDown
-                    className={`w-4 h-4 text-slate-400 transition-transform ${
-                      showHistory ? 'rotate-180' : ''
-                    }`}
+                    className={`w-4 h-4 text-slate-400 transition-transform ${showHistory ? 'rotate-180' : ''
+                      }`}
                   />
                 </button>
 
@@ -507,9 +503,8 @@ export default function Contact() {
                       >
                         <span>{faq.q}</span>
                         <ChevronDown
-                          className={`w-3.5 h-3.5 text-slate-400 transition-transform ${
-                            isOpen ? 'rotate-180 text-blue-600' : ''
-                          }`}
+                          className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isOpen ? 'rotate-180 text-blue-600' : ''
+                            }`}
                         />
                       </button>
                       {isOpen && (

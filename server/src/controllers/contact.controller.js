@@ -6,6 +6,11 @@ const list = wrap((req, res) => {
   res.json({ success: true, data });
 });
 
+const getById = wrap((req, res) => {
+  const contact = contactService.getContactById(req.user.id, req.params.id);
+  res.json({ success: true, data: { contact } });
+});
+
 const create = wrap((req, res) => {
   const contact = contactService.createContact(req.user.id, req.body);
   res.status(201).json({ success: true, message: 'Contact created.', data: { contact } });
@@ -41,4 +46,14 @@ const resetDemo = wrap((req, res) => {
   res.json({ success: true, message: 'Demo contacts restored.', data: { contacts } });
 });
 
-module.exports = { list, create, update, remove, restore, favorite, permanent, resetDemo };
+module.exports = {
+  list,
+  getById,
+  create,
+  update,
+  remove,
+  restore,
+  favorite,
+  permanent,
+  resetDemo,
+};

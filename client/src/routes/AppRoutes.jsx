@@ -8,17 +8,17 @@ import { RequireAuth, GuestOnly } from "./ProtectedRoute.jsx";
 import Home from "../pages/Home.jsx";
 import About from "../pages/About.jsx";
 import Contact from "../pages/Contact.jsx";
-import Login from "../pages/Login.jsx";
-import Register from "../pages/Register.jsx";
-import Dashboard from "../pages/Dashboard.jsx";
-import Contacts from "../pages/Contacts.jsx";
+import Login from "../features/auth/Login.jsx";
+import Register from "../features/interactions/Register.jsx";
+import Dashboard from "../features/dashboard/Dashboard.jsx";
+import Contacts from "../features/contacts/Contacts.jsx";
 import ContactDetails from "../pages/ContactDetails.jsx";
-import ContactForm from "../pages/ContactForm.jsx";
+import ContactForm from "../features/contacts/ContactForm.jsx";
 import Lists from "../pages/Lists.jsx";
-import FollowUps from "../pages/FollowUps.jsx";
-import ImportCSV from "../pages/ImportCSV.jsx";
-import DeletedContacts from "../pages/DeletedContacts.jsx";
-import Settings from "../pages/Settings.jsx";
+import FollowUps from "../features/followups/FollowUps.jsx";
+import ImportCSV from "../features/lists/ImportCSV.jsx";
+import DeletedContacts from "../features/contacts/DeletedContacts.jsx";
+import Settings from "../features/dashboard/Settings.jsx";
 
 function UserDataLayout() {
   const { user } = useAuth();

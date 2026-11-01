@@ -29,9 +29,12 @@ export default function ContactProvider({ children }) {
   // Gets the latest contacts from the server.
   const loadContacts = async () => {
     try {
-      setContacts(await api.getAllContacts());
+      const all = await api.getAllContacts();
+      setContacts(all);
+      return all;
     } catch (err) {
       showToast(err.message, 'warning');
+      return [];
     }
   };
 
@@ -104,6 +107,7 @@ export default function ContactProvider({ children }) {
     permanentDeleteContact,
     toggleFavorite,
     resetToSampleData,
+    loadContacts,
     toast,
     showToast,
   };

@@ -1,4 +1,8 @@
-require("dotenv").config(); // loads server/.env first
+const path = require("path");
+
+// Safely load environment variables from server/.env regardless of where node is launched
+require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
+require("dotenv").config(); // fallback to current working directory if present
 
 if (!process.env.JWT_SECRET) {
   console.error("JWT_SECRET is missing. Add it to server/.env");

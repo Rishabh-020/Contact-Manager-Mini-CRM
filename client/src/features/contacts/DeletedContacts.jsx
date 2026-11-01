@@ -3,15 +3,10 @@ import { Link } from 'react-router-dom';
 import {
   Trash2,
   RotateCcw,
-  AlertTriangle,
-  Building2,
-  Mail,
-  Phone,
   ArrowLeft,
-  CheckCircle2,
   ShieldAlert
 } from 'lucide-react';
-import { useContacts } from '../App.jsx';
+import { useContacts } from '../../App.jsx';
 
 export default function DeletedContacts() {
   const {
@@ -103,7 +98,7 @@ export default function DeletedContacts() {
                   </div>
                   <div className="min-w-0">
                     <h3 className="font-semibold text-sm text-slate-900 truncate">
-                      {contact.firstName} {contact.lastName}
+                      {contact.firstName} {contact.lastName || ''}
                     </h3>
                     <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 mt-0.5">
                       {contact.company && <span>{contact.company}</span>}
@@ -161,7 +156,7 @@ export default function DeletedContacts() {
                 <span className="font-semibold text-slate-900">
                   {contactToPurge.firstName} {contactToPurge.lastName || ''}
                 </span>{' '}
-                from browser storage. This action cannot be undone.
+                from server storage. This action cannot be undone.
               </p>
             </div>
 

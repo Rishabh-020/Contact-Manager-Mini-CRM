@@ -1,7 +1,21 @@
 const crypto = require("crypto");
-const { getContactMap, saveContactMap } = require("../config/db");
+const {
+  getContactMap,
+  saveContactMap,
+  getListMap,
+  saveListMap,
+  getFollowUpMap,
+  saveFollowUpMap,
+  getInteractionMap,
+  saveInteractionMap,
+} = require("../config/db");
 const httpError = require("../utils/httpError");
-const { sampleContacts } = require("./sampleContacts");
+const {
+  sampleContacts,
+  sampleLists,
+  sampleFollowUps,
+  sampleInteractions,
+} = require("./sampleContacts");
 
 // The fields a user is allowed to send.
 const FIELDS = [
@@ -88,16 +102,17 @@ function findMine(list, id) {
 
 // ---------- The functions the controller uses ----------
 
-function listContacts(userId, query) {
-  const status = query.status || "active";
-  const search = String(query.search || "").toLowerCase();
-  const limit = Math.min(100, Number(query.limit) || 20);
-  const page = Math.max(1, Number(query.page) || 1);
+function listContacts(userId, query = {}) {
+  const q = query || {};
+  const status = q.status || "active";
+  const search = String(q.search || "").toLowerCase();
+  const limit = Math.min(100, Number(q.limit) || 20);
+  const page = Math.max(1, Number(q.page) || 1);
 
   let list = getMyList(userId);
   if (status === "active") list = list.filter((c) => !c.isDeleted);
   if (status === "deleted") list = list.filter((c) => c.isDeleted);
-  if (query.favorite === "true") list = list.filter((c) => c.isFavorite);
+  if (q.favorite === "true") list = list.filter((c) => c.isFavorite);
   if (search) {
     list = list.filter((c) =>
       [c.firstName, c.lastName, c.email, c.phone, c.company].some((v) =>
@@ -122,6 +137,11 @@ function listContacts(userId, query) {
       hasPrevPage: page > 1,
     },
   };
+}
+
+function getContactById(userId, id) {
+  const list = getMyList(userId);
+  return findMine(list, id);
 }
 
 function createContact(userId, body) {
@@ -212,6 +232,29 @@ function permanentDeleteContact(userId, id) {
     userId,
     list.filter((c) => c.id !== id),
   );
+
+  // Clean up references in lists
+  const listMap = getListMap();
+  if (listMap[userId]) {
+    listMap[userId].forEach((l) => {
+      l.contactIds = (l.contactIds || []).filter((cid) => cid !== id);
+    });
+    saveListMap(listMap);
+  }
+
+  // Clean up followups
+  const followUpMap = getFollowUpMap();
+  if (followUpMap[userId]) {
+    followUpMap[userId] = followUpMap[userId].filter((f) => f.contactId !== id);
+    saveFollowUpMap(followUpMap);
+  }
+
+  // Clean up interactions
+  const interactionMap = getInteractionMap();
+  if (interactionMap[userId]) {
+    interactionMap[userId] = interactionMap[userId].filter((i) => i.contactId !== id);
+    saveInteractionMap(interactionMap);
+  }
 }
 
 // Only the admin can bring back the 6 sample contacts.
@@ -221,11 +264,26 @@ function resetDemoContacts(userId, isAdmin) {
   }
   const samples = sampleContacts();
   saveMyList(userId, samples);
+
+  // Also restore sample lists, follow-ups, and interactions
+  const listMap = getListMap();
+  listMap[userId] = sampleLists(samples, userId);
+  saveListMap(listMap);
+
+  const followUpMap = getFollowUpMap();
+  followUpMap[userId] = sampleFollowUps(samples, userId);
+  saveFollowUpMap(followUpMap);
+
+  const interactionMap = getInteractionMap();
+  interactionMap[userId] = sampleInteractions(samples, userId);
+  saveInteractionMap(interactionMap);
+
   return samples;
 }
 
 module.exports = {
   listContacts,
+  getContactById,
   createContact,
   updateContact,
   softDeleteContact,

@@ -1,119 +1,3 @@
-// import React, { useState } from "react";
-// import { Link } from "react-router-dom";
-// import { useAuth } from "../auth/AuthContext.jsx";
-
-// export default function Register() {
-//   const { register } = useAuth();
-//   const [name, setName] = useState("");
-//   const [email, setEmail] = useState("");
-//   const [password, setPassword] = useState("");
-//   const [confirm, setConfirm] = useState("");
-//   const [error, setError] = useState("");
-//   const [loading, setLoading] = useState(false);
-
-//   const handleSubmit = async (e) => {
-//     e.preventDefault();
-//     setError("");
-
-//     if (password !== confirm) {
-//       setError("Passwords do not match.");
-//       return;
-//     }
-
-//     setLoading(true);
-//     try {
-//       await register(name, email, password);
-//       // After register, GuestOnly sends the new user to the dashboard.
-//     } catch (err) {
-//       setError(err.message);
-//       setLoading(false);
-//     }
-//   };
-
-//   return (
-//     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-//       <div className="max-w-md w-full bg-white rounded-3xl p-8 border border-slate-200 shadow-xl space-y-6">
-//         <div className="text-center">
-//           <h1 className="text-2xl font-bold text-slate-900">Create Account</h1>
-//           <p className="text-xs text-slate-500 mt-1">
-//             Your new account starts with no contacts.
-//           </p>
-//         </div>
-
-//         {error && (
-//           <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700">
-//             {error}
-//           </div>
-//         )}
-
-//         <form onSubmit={handleSubmit} className="space-y-4">
-//           <div>
-//             <label className="block text-xs font-semibold text-slate-700 mb-1">
-//               Full Name
-//             </label>
-//             <input
-//               value={name}
-//               onChange={(e) => setName(e.target.value)}
-//               className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50"
-//               required
-//             />
-//           </div>
-//           <div>
-//             <label className="block text-xs font-semibold text-slate-700 mb-1">
-//               Email
-//             </label>
-//             <input
-//               type="email"
-//               value={email}
-//               onChange={(e) => setEmail(e.target.value)}
-//               className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50"
-//               required
-//             />
-//           </div>
-//           <div>
-//             <label className="block text-xs font-semibold text-slate-700 mb-1">
-//               Password (min 6 characters)
-//             </label>
-//             <input
-//               type="password"
-//               value={password}
-//               onChange={(e) => setPassword(e.target.value)}
-//               className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50"
-//               required
-//             />
-//           </div>
-//           <div>
-//             <label className="block text-xs font-semibold text-slate-700 mb-1">
-//               Confirm Password
-//             </label>
-//             <input
-//               type="password"
-//               value={confirm}
-//               onChange={(e) => setConfirm(e.target.value)}
-//               className="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-200 bg-slate-50"
-//               required
-//             />
-//           </div>
-//           <button
-//             type="submit"
-//             disabled={loading}
-//             className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold text-sm rounded-xl"
-//           >
-//             {loading ? "Creating account..." : "Create account"}
-//           </button>
-//         </form>
-
-//         <p className="text-center text-xs text-slate-500">
-//           Already registered?{" "}
-//           <Link to="/login" className="text-blue-600 font-semibold">
-//             Sign in
-//           </Link>
-//         </p>
-//       </div>
-//     </div>
-//   );
-// }
-
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -128,7 +12,7 @@ import {
   CheckCircle2,
   ArrowLeft,
 } from "lucide-react";
-import { useAuth } from "../auth/AuthContext.jsx";
+import { useAuth } from "../../auth/AuthContext.jsx";
 
 // One input box with an icon on the left.
 function Field({ icon: Icon, label, rightSlot, ...inputProps }) {
@@ -312,11 +196,10 @@ export default function Register() {
                     {[1, 2, 3, 4].map((step) => (
                       <div
                         key={step}
-                        className={`h-1.5 flex-1 rounded-full transition-colors ${
-                          step <= score
+                        className={`h-1.5 flex-1 rounded-full transition-colors ${step <= score
                             ? STRENGTH_COLORS[score]
                             : "bg-slate-200"
-                        }`}
+                          }`}
                       />
                     ))}
                   </div>
