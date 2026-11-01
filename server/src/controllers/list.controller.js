@@ -1,18 +1,18 @@
 const listService = require("../services/list.service");
 const wrap = require("../utils/wrap");
 
-const getAll = wrap((req, res) => {
-  const lists = listService.getAllLists(req.user.id);
+const getAll = wrap(async (req, res) => {
+  const lists = await listService.getAllLists(req.user.id);
   res.json({ success: true, data: { lists } });
 });
 
-const getById = wrap((req, res) => {
-  const list = listService.getListById(req.user.id, req.params.id);
+const getById = wrap(async (req, res) => {
+  const list = await listService.getListById(req.user.id, req.params.id);
   res.json({ success: true, data: { list } });
 });
 
-const create = wrap((req, res) => {
-  const list = listService.createList(req.user.id, req.body);
+const create = wrap(async (req, res) => {
+  const list = await listService.createList(req.user.id, req.body);
   res.status(201).json({
     success: true,
     message: "List created successfully.",
@@ -20,8 +20,8 @@ const create = wrap((req, res) => {
   });
 });
 
-const update = wrap((req, res) => {
-  const list = listService.updateList(req.user.id, req.params.id, req.body);
+const update = wrap(async (req, res) => {
+  const list = await listService.updateList(req.user.id, req.params.id, req.body);
   res.json({
     success: true,
     message: "List updated successfully.",
@@ -29,8 +29,8 @@ const update = wrap((req, res) => {
   });
 });
 
-const remove = wrap((req, res) => {
-  const list = listService.deleteList(req.user.id, req.params.id);
+const remove = wrap(async (req, res) => {
+  const list = await listService.deleteList(req.user.id, req.params.id);
   res.json({
     success: true,
     message: "List deleted.",
@@ -38,8 +38,8 @@ const remove = wrap((req, res) => {
   });
 });
 
-const addContacts = wrap((req, res) => {
-  const list = listService.addContactsToList(
+const addContacts = wrap(async (req, res) => {
+  const list = await listService.addContactsToList(
     req.user.id,
     req.params.id,
     req.body.contactIds
@@ -51,8 +51,8 @@ const addContacts = wrap((req, res) => {
   });
 });
 
-const removeContact = wrap((req, res) => {
-  const list = listService.removeContactFromList(
+const removeContact = wrap(async (req, res) => {
+  const list = await listService.removeContactFromList(
     req.user.id,
     req.params.id,
     req.params.contactId
@@ -64,8 +64,8 @@ const removeContact = wrap((req, res) => {
   });
 });
 
-const getForContact = wrap((req, res) => {
-  const lists = listService.getListsForContact(req.user.id, req.params.contactId);
+const getForContact = wrap(async (req, res) => {
+  const lists = await listService.getListsForContact(req.user.id, req.params.contactId);
   res.json({ success: true, data: { lists } });
 });
 

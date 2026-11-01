@@ -9,10 +9,10 @@ import Home from "../pages/Home.jsx";
 import About from "../pages/About.jsx";
 import Contact from "../pages/Contact.jsx";
 import Login from "../features/auth/Login.jsx";
-import Register from "../features/interactions/Register.jsx";
+import Register from "../features/auth/Register.jsx";
 import Dashboard from "../features/dashboard/Dashboard.jsx";
 import Contacts from "../features/contacts/Contacts.jsx";
-import ContactDetails from "../pages/ContactDetails.jsx";
+import ContactDetails from "../features/contacts/ContactDetails.jsx";
 import ContactForm from "../features/contacts/ContactForm.jsx";
 import Lists from "../pages/Lists.jsx";
 import FollowUps from "../features/followups/FollowUps.jsx";
@@ -66,4 +66,3 @@ export default function AppRoutes() {
     </Routes>
   );
 }
-

@@ -1,13 +1,13 @@
 const followUpService = require("../services/followUp.service");
 const wrap = require("../utils/wrap");
 
-const getAll = wrap((req, res) => {
-  const followUps = followUpService.getAllFollowUps(req.user.id, req.query);
+const getAll = wrap(async (req, res) => {
+  const followUps = await followUpService.getAllFollowUps(req.user.id, req.query);
   res.json({ success: true, data: { followUps } });
 });
 
-const create = wrap((req, res) => {
-  const followUp = followUpService.createFollowUp(req.user.id, req.body);
+const create = wrap(async (req, res) => {
+  const followUp = await followUpService.createFollowUp(req.user.id, req.body);
   res.status(201).json({
     success: true,
     message: "Follow-up task scheduled.",
@@ -15,8 +15,8 @@ const create = wrap((req, res) => {
   });
 });
 
-const update = wrap((req, res) => {
-  const followUp = followUpService.updateFollowUp(req.user.id, req.params.id, req.body);
+const update = wrap(async (req, res) => {
+  const followUp = await followUpService.updateFollowUp(req.user.id, req.params.id, req.body);
   res.json({
     success: true,
     message: "Follow-up task updated.",
@@ -24,8 +24,8 @@ const update = wrap((req, res) => {
   });
 });
 
-const toggleStatus = wrap((req, res) => {
-  const followUp = followUpService.toggleFollowUpStatus(req.user.id, req.params.id);
+const toggleStatus = wrap(async (req, res) => {
+  const followUp = await followUpService.toggleFollowUpStatus(req.user.id, req.params.id);
   res.json({
     success: true,
     message: followUp.status === "completed" ? "Marked as completed." : "Reopened task.",
@@ -33,8 +33,8 @@ const toggleStatus = wrap((req, res) => {
   });
 });
 
-const remove = wrap((req, res) => {
-  const removed = followUpService.deleteFollowUp(req.user.id, req.params.id);
+const remove = wrap(async (req, res) => {
+  const removed = await followUpService.deleteFollowUp(req.user.id, req.params.id);
   res.json({
     success: true,
     message: "Follow-up task deleted.",
