@@ -1,173 +1,174 @@
-const crypto = require("crypto");
-const { getListMap, saveListMap, getContactMap } = require("../config/db");
+const ContactList = require("../models/ContactList");
+const Contact = require("../models/Contact");
 const httpError = require("../utils/httpError");
 
-function getMyLists(userId) {
-  return getListMap()[userId] || [];
-}
+function formatList(doc, contactMap = {}) {
+  const list = doc.toObject ? doc.toObject() : { ...doc };
+  const rawIds = (list.contactIds || []).map((id) => String(id));
+  const validContactIds = rawIds.filter((id) => Boolean(contactMap[id]));
 
-function saveMyLists(userId, lists) {
-  const map = getListMap();
-  map[userId] = lists;
-  saveListMap(map);
-}
-
-function getUserActiveContacts(userId) {
-  const contacts = getContactMap()[userId] || [];
-  return contacts.filter((c) => !c.isDeleted);
-}
-
-function getAllLists(userId) {
-  const lists = getMyLists(userId);
-  const activeContacts = getUserActiveContacts(userId);
-  const contactMap = {};
-  activeContacts.forEach((c) => {
-    contactMap[c.id] = c;
-  });
-
-  return lists.map((list) => {
-    // Only count contacts that are still active (not deleted)
-    const validContactIds = (list.contactIds || []).filter((id) => Boolean(contactMap[id]));
-    const memberPreviews = validContactIds.slice(0, 5).map((id) => ({
-      id,
-      name: `${contactMap[id].firstName} ${contactMap[id].lastName || ""}`.trim(),
-      email: contactMap[id].email,
-      company: contactMap[id].company,
-    }));
-
+  const memberPreviews = validContactIds.slice(0, 5).map((id) => {
+    const c = contactMap[id] || {};
     return {
-      ...list,
-      contactIds: validContactIds,
-      contactsCount: validContactIds.length,
-      memberPreviews,
+      id,
+      name: `${c.firstName || "Contact"} ${c.lastName || ""}`.trim(),
+      email: c.email || "",
+      company: c.company || "",
     };
   });
-}
-
-function getListById(userId, listId) {
-  const lists = getMyLists(userId);
-  const list = lists.find((l) => l.id === listId);
-  if (!list) throw httpError(404, "List not found.");
-
-  const activeContacts = getUserActiveContacts(userId);
-  const contactMap = {};
-  activeContacts.forEach((c) => {
-    contactMap[c.id] = c;
-  });
-
-  const validMembers = (list.contactIds || [])
-    .map((id) => contactMap[id])
-    .filter(Boolean);
 
   return {
-    ...list,
-    contactsCount: validMembers.length,
-    contacts: validMembers,
+    id: String(list._id || list.id),
+    userId: String(list.userId),
+    name: list.name,
+    description: list.description || "",
+    color: list.color || "blue",
+    contactIds: validContactIds,
+    contactsCount: validContactIds.length,
+    memberPreviews,
+    createdAt: list.createdAt,
+    updatedAt: list.updatedAt,
   };
 }
 
-function createList(userId, payload) {
-  const name = String(payload.name || "").trim();
-  if (!name) throw httpError(400, "List name is required.");
+async function getAllLists(userId) {
+  const uId = String(userId);
+  const lists = await ContactList.find({ userId: uId }).sort({ createdAt: -1 });
+  const activeContacts = await Contact.find({ userId: uId, isDeleted: false });
 
-  const lists = getMyLists(userId);
-  if (lists.some((l) => l.name.toLowerCase() === name.toLowerCase())) {
-    throw httpError(409, "A list with this name already exists.");
+  const contactMap = {};
+  activeContacts.forEach((c) => {
+    contactMap[String(c._id || c.id)] = c;
+  });
+
+  return lists.map((l) => formatList(l, contactMap));
+}
+
+async function getListById(userId, listId) {
+  const uId = String(userId);
+  const list = await ContactList.findOne({ _id: listId, userId: uId });
+  if (!list) throw httpError(404, "List not found.");
+
+  const activeContacts = await Contact.find({ userId: uId, isDeleted: false });
+  const contactMap = {};
+  activeContacts.forEach((c) => {
+    contactMap[String(c._id || c.id)] = c;
+  });
+
+  return formatList(list, contactMap);
+}
+
+async function createList(userId, payload) {
+  const uId = String(userId);
+  const { name, description = "", color = "blue", contactIds = [] } = payload;
+  if (!name || !name.trim()) {
+    throw httpError(400, "List name is required.");
   }
 
-  const now = new Date().toISOString();
-  const newList = {
-    id: crypto.randomUUID(),
-    userId,
-    name,
-    description: (payload.description || "").trim(),
-    color: payload.color || "blue",
-    contactIds: Array.isArray(payload.contactIds) ? [...new Set(payload.contactIds)] : [],
-    createdAt: now,
-    updatedAt: now,
-  };
+  const cleanIds = (contactIds || []).map((id) => String(id).trim()).filter(Boolean);
 
-  lists.push(newList);
-  saveMyLists(userId, lists);
-  return newList;
+  const created = await ContactList.create({
+    userId: uId,
+    name: name.trim(),
+    description: (description || "").trim(),
+    color: color || "blue",
+    contactIds: cleanIds,
+  });
+
+  const activeContacts = await Contact.find({ userId: uId, isDeleted: false });
+  const contactMap = {};
+  activeContacts.forEach((c) => {
+    contactMap[String(c._id || c.id)] = c;
+  });
+
+  return formatList(created, contactMap);
 }
 
-function updateList(userId, listId, payload) {
-  const lists = getMyLists(userId);
-  const list = lists.find((l) => l.id === listId);
+async function updateList(userId, listId, payload) {
+  const uId = String(userId);
+  const list = await ContactList.findOne({ _id: listId, userId: uId });
   if (!list) throw httpError(404, "List not found.");
 
   if (payload.name !== undefined) {
-    const name = String(payload.name).trim();
-    if (!name) throw httpError(400, "List name cannot be empty.");
-    if (
-      lists.some(
-        (l) => l.id !== listId && l.name.toLowerCase() === name.toLowerCase()
-      )
-    ) {
-      throw httpError(409, "A list with this name already exists.");
-    }
-    list.name = name;
+    if (!payload.name.trim()) throw httpError(400, "List name cannot be empty.");
+    list.name = payload.name.trim();
   }
-
   if (payload.description !== undefined) {
     list.description = String(payload.description).trim();
   }
-
   if (payload.color !== undefined) {
     list.color = payload.color;
   }
-
-  list.updatedAt = new Date().toISOString();
-  saveMyLists(userId, lists);
-  return list;
-}
-
-function deleteList(userId, listId) {
-  const lists = getMyLists(userId);
-  const index = lists.findIndex((l) => l.id === listId);
-  if (index === -1) throw httpError(404, "List not found.");
-
-  const removed = lists.splice(index, 1)[0];
-  saveMyLists(userId, lists);
-  return removed;
-}
-
-function addContactsToList(userId, listId, contactIds) {
-  if (!Array.isArray(contactIds) || contactIds.length === 0) {
-    throw httpError(400, "Array of contactIds is required.");
+  if (payload.contactIds !== undefined && Array.isArray(payload.contactIds)) {
+    list.contactIds = payload.contactIds.map((id) => String(id).trim()).filter(Boolean);
   }
 
-  const lists = getMyLists(userId);
-  const list = lists.find((l) => l.id === listId);
-  if (!list) throw httpError(404, "List not found.");
+  await list.save();
 
-  const currentSet = new Set(list.contactIds || []);
-  contactIds.forEach((id) => currentSet.add(id));
-  list.contactIds = Array.from(currentSet);
-  list.updatedAt = new Date().toISOString();
+  const activeContacts = await Contact.find({ userId: uId, isDeleted: false });
+  const contactMap = {};
+  activeContacts.forEach((c) => {
+    contactMap[String(c._id || c.id)] = c;
+  });
 
-  saveMyLists(userId, lists);
-  return list;
+  return formatList(list, contactMap);
 }
 
-function removeContactFromList(userId, listId, contactId) {
-  const lists = getMyLists(userId);
-  const list = lists.find((l) => l.id === listId);
-  if (!list) throw httpError(404, "List not found.");
-
-  list.contactIds = (list.contactIds || []).filter((id) => id !== contactId);
-  list.updatedAt = new Date().toISOString();
-
-  saveMyLists(userId, lists);
-  return list;
+async function deleteList(userId, listId) {
+  const uId = String(userId);
+  const removed = await ContactList.findOneAndDelete({ _id: listId, userId: uId });
+  if (!removed) throw httpError(404, "List not found.");
+  return { id: String(removed._id || removed.id), name: removed.name };
 }
 
-function getListsForContact(userId, contactId) {
-  const lists = getMyLists(userId);
-  return lists
-    .filter((l) => (l.contactIds || []).includes(contactId))
-    .map((l) => ({ id: l.id, name: l.name, color: l.color }));
+async function addContactsToList(userId, listId, contactIds) {
+  const uId = String(userId);
+  const list = await ContactList.findOne({ _id: listId, userId: uId });
+  if (!list) throw httpError(404, "List not found.");
+
+  const currentIds = new Set((list.contactIds || []).map((id) => String(id)));
+  (contactIds || []).forEach((id) => {
+    if (id) currentIds.add(String(id).trim());
+  });
+
+  list.contactIds = Array.from(currentIds);
+  await list.save();
+
+  const activeContacts = await Contact.find({ userId: uId, isDeleted: false });
+  const contactMap = {};
+  activeContacts.forEach((c) => {
+    contactMap[String(c._id || c.id)] = c;
+  });
+
+  return formatList(list, contactMap);
+}
+
+async function removeContactFromList(userId, listId, contactId) {
+  const uId = String(userId);
+  const list = await ContactList.findOne({ _id: listId, userId: uId });
+  if (!list) throw httpError(404, "List not found.");
+
+  list.contactIds = (list.contactIds || []).filter((id) => String(id) !== String(contactId));
+  await list.save();
+
+  const activeContacts = await Contact.find({ userId: uId, isDeleted: false });
+  const contactMap = {};
+  activeContacts.forEach((c) => {
+    contactMap[String(c._id || c.id)] = c;
+  });
+
+  return formatList(list, contactMap);
+}
+
+async function getListsForContact(userId, contactId) {
+  const uId = String(userId);
+  const cId = String(contactId);
+  const lists = await ContactList.find({ userId: uId, contactIds: cId });
+  return lists.map((l) => ({
+    id: String(l._id || l.id),
+    name: l.name,
+    color: l.color,
+  }));
 }
 
 module.exports = {

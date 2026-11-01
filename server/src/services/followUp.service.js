@@ -1,23 +1,6 @@
-const crypto = require("crypto");
-const { getFollowUpMap, saveFollowUpMap, getContactMap, saveContactMap } = require("../config/db");
+const FollowUp = require("../models/FollowUp");
+const Contact = require("../models/Contact");
 const httpError = require("../utils/httpError");
-
-function getMyFollowUps(userId) {
-  return getFollowUpMap()[userId] || [];
-}
-
-function saveMyFollowUps(userId, list) {
-  const map = getFollowUpMap();
-  map[userId] = list;
-  saveFollowUpMap(map);
-}
-
-function getContact(userId, contactId) {
-  const contacts = getContactMap()[userId] || [];
-  const contact = contacts.find((c) => c.id === contactId);
-  if (!contact) throw httpError(404, "Contact not found for this user.");
-  return contact;
-}
 
 function computeDiffDays(dueDateStr) {
   if (!dueDateStr) return null;
@@ -29,9 +12,8 @@ function computeDiffDays(dueDateStr) {
   return Math.ceil((target - today) / (1000 * 60 * 60 * 24));
 }
 
-function enrichFollowUp(userId, item) {
-  const userContacts = getContactMap()[userId] || [];
-  const contact = userContacts.find((c) => c.id === item.contactId) || {};
+function enrichItem(item, contact) {
+  const c = contact || {};
   const diffDays = computeDiffDays(item.dueDate);
   let timeCategory = "upcoming";
   if (diffDays !== null) {
@@ -40,36 +22,54 @@ function enrichFollowUp(userId, item) {
   }
 
   return {
-    ...item,
-    contactName: `${contact.firstName || "Unknown"} ${contact.lastName || ""}`.trim(),
-    contactCompany: contact.company || "",
-    contactEmail: contact.email || "",
-    contactPhone: contact.phone || "",
-    isContactDeleted: Boolean(contact.isDeleted),
+    id: String(item._id || item.id),
+    userId: String(item.userId),
+    contactId: String(item.contactId),
+    description: item.description,
+    dueDate: item.dueDate,
+    priority: item.priority || "medium",
+    status: item.status || "pending",
+    completedAt: item.completedAt || null,
+    createdAt: item.createdAt,
+    updatedAt: item.updatedAt,
+    contactName: `${c.firstName || "Unknown"} ${c.lastName || ""}`.trim(),
+    contactCompany: c.company || "",
+    contactEmail: c.email || "",
+    contactPhone: c.phone || "",
+    isContactDeleted: Boolean(c.isDeleted),
     diffDays,
     timeCategory,
   };
 }
 
-function getAllFollowUps(userId, query = {}) {
-  const list = getMyFollowUps(userId);
-  let enriched = list.map((item) => enrichFollowUp(userId, item));
+async function getAllFollowUps(userId, query = {}) {
+  const uId = String(userId);
+  const filter = { userId: uId };
+
+  if (query.contactId) {
+    filter.contactId = String(query.contactId);
+  }
+  if (query.status && query.status !== "all") {
+    filter.status = query.status;
+  }
+  if (query.priority && query.priority !== "all") {
+    filter.priority = query.priority;
+  }
+
+  const followUps = await FollowUp.find(filter);
+  const contacts = await Contact.find({ userId: uId });
+  const contactMap = {};
+  contacts.forEach((c) => {
+    contactMap[String(c._id || c.id)] = c;
+  });
+
+  let enriched = followUps.map((item) =>
+    enrichItem(item.toObject ? item.toObject() : item, contactMap[String(item.contactId)])
+  );
 
   // Filter out follow-ups whose contacts have been permanently deleted, unless requested
   if (query.includeDeleted !== "true") {
     enriched = enriched.filter((item) => !item.isContactDeleted);
-  }
-
-  if (query.contactId) {
-    enriched = enriched.filter((item) => item.contactId === query.contactId);
-  }
-
-  if (query.status && query.status !== "all") {
-    enriched = enriched.filter((item) => item.status === query.status);
-  }
-
-  if (query.priority && query.priority !== "all") {
-    enriched = enriched.filter((item) => item.priority === query.priority);
   }
 
   if (query.category && query.category !== "all") {
@@ -90,52 +90,34 @@ function getAllFollowUps(userId, query = {}) {
   return enriched;
 }
 
-function createFollowUp(userId, payload) {
+async function createFollowUp(userId, payload) {
+  const uId = String(userId);
   const { contactId, dueDate, priority = "medium" } = payload;
   const description = String(payload.description || payload.title || "").trim();
+
   if (!contactId) throw httpError(400, "Contact ID is required.");
-  if (!description) {
-    throw httpError(400, "Follow-up description is required.");
-  }
+  if (!description) throw httpError(400, "Follow-up description is required.");
   if (!dueDate) throw httpError(400, "Follow-up due date is required.");
 
-  const contact = getContact(userId, contactId);
+  const contact = await Contact.findOne({ _id: contactId, userId: uId });
+  if (!contact) throw httpError(404, "Contact not found for this user.");
 
-  const now = new Date().toISOString();
-  const followUp = {
-    id: crypto.randomUUID(),
-    userId,
-    contactId,
+  const created = await FollowUp.create({
+    userId: uId,
+    contactId: String(contactId),
     description,
     dueDate: String(dueDate).trim().split("T")[0],
     priority: ["low", "medium", "high"].includes(priority) ? priority : "medium",
     status: "pending",
     completedAt: null,
-    createdAt: now,
-    updatedAt: now,
-  };
+  });
 
-  const list = getMyFollowUps(userId);
-  list.push(followUp);
-  saveMyFollowUps(userId, list);
-
-  // Sync with contact.followUpDate if not set or this is sooner
-  if (!contact.followUpDate || contact.followUpDate > followUp.dueDate) {
-    const contactMap = getContactMap();
-    const c = (contactMap[userId] || []).find((x) => x.id === contactId);
-    if (c) {
-      c.followUpDate = followUp.dueDate;
-      c.updatedAt = now;
-      saveContactMap(contactMap);
-    }
-  }
-
-  return enrichFollowUp(userId, followUp);
+  return enrichItem(created.toObject(), contact);
 }
 
-function updateFollowUp(userId, id, payload) {
-  const list = getMyFollowUps(userId);
-  const item = list.find((f) => f.id === id);
+async function updateFollowUp(userId, id, payload) {
+  const uId = String(userId);
+  const item = await FollowUp.findOne({ _id: id, userId: uId });
   if (!item) throw httpError(404, "Follow-up not found.");
 
   if (payload.description !== undefined || payload.title !== undefined) {
@@ -149,36 +131,33 @@ function updateFollowUp(userId, id, payload) {
   }
   if (payload.status !== undefined && ["pending", "completed"].includes(payload.status)) {
     item.status = payload.status;
-    item.completedAt = payload.status === "completed" ? new Date().toISOString() : null;
+    item.completedAt = payload.status === "completed" ? new Date() : null;
   }
 
-  item.updatedAt = new Date().toISOString();
-  saveMyFollowUps(userId, list);
-  return enrichFollowUp(userId, item);
+  await item.save();
+  const contact = await Contact.findOne({ _id: item.contactId, userId: uId });
+  return enrichItem(item.toObject(), contact);
 }
 
-function toggleFollowUpStatus(userId, id) {
-  const list = getMyFollowUps(userId);
-  const item = list.find((f) => f.id === id);
+async function toggleFollowUpStatus(userId, id) {
+  const uId = String(userId);
+  const item = await FollowUp.findOne({ _id: id, userId: uId });
   if (!item) throw httpError(404, "Follow-up not found.");
 
   const isNowCompleted = item.status !== "completed";
   item.status = isNowCompleted ? "completed" : "pending";
-  item.completedAt = isNowCompleted ? new Date().toISOString() : null;
-  item.updatedAt = new Date().toISOString();
+  item.completedAt = isNowCompleted ? new Date() : null;
 
-  saveMyFollowUps(userId, list);
-  return enrichFollowUp(userId, item);
+  await item.save();
+  const contact = await Contact.findOne({ _id: item.contactId, userId: uId });
+  return enrichItem(item.toObject(), contact);
 }
 
-function deleteFollowUp(userId, id) {
-  const list = getMyFollowUps(userId);
-  const index = list.findIndex((f) => f.id === id);
-  if (index === -1) throw httpError(404, "Follow-up not found.");
-
-  const removed = list.splice(index, 1)[0];
-  saveMyFollowUps(userId, list);
-  return removed;
+async function deleteFollowUp(userId, id) {
+  const uId = String(userId);
+  const removed = await FollowUp.findOneAndDelete({ _id: id, userId: uId });
+  if (!removed) throw httpError(404, "Follow-up not found.");
+  return { id: String(removed._id), ...removed.toObject() };
 }
 
 module.exports = {

@@ -1,23 +1,26 @@
 let mongoose;
 try {
-  mongoose = require('mongoose');
+  mongoose = require("mongoose");
 } catch {
   mongoose = {
     Schema: class Schema {
       constructor(def, opts) { this.definition = def; this.options = opts; }
       index() {}
+      set() {}
     },
     model: (name, schema) => ({ modelName: name, schema }),
+    models: {},
+    Types: { ObjectId: class ObjectId { toString() { return require("crypto").randomUUID(); } } }
   };
-  mongoose.Schema.Types = { ObjectId: String };
 }
 
 const interactionSchema = new mongoose.Schema(
   {
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    contactId: { type: mongoose.Schema.Types.ObjectId, ref: 'Contact', required: true },
-    type: { type: String, enum: ['call', 'email', 'meeting', 'note'], required: true },
-    title: { type: String, trim: true, default: '' },
+    _id: { type: String, default: () => new mongoose.Types.ObjectId().toString() },
+    userId: { type: String, required: true, index: true },
+    contactId: { type: String, required: true, index: true },
+    type: { type: String, enum: ["call", "email", "meeting", "note"], required: true },
+    title: { type: String, trim: true, default: "" },
     note: { type: String, required: true, trim: true },
     date: { type: Date, default: Date.now },
   },
@@ -26,4 +29,13 @@ const interactionSchema = new mongoose.Schema(
 
 interactionSchema.index({ userId: 1, contactId: 1, date: -1 });
 
-module.exports = mongoose.model('Interaction', interactionSchema);
+interactionSchema.set("toJSON", {
+  virtuals: true,
+  transform: (doc, ret) => {
+    ret.id = ret._id;
+    delete ret.__v;
+    return ret;
+  },
+});
+
+module.exports = (mongoose.models && mongoose.models.Interaction) || mongoose.model("Interaction", interactionSchema);
