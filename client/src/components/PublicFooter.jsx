@@ -6,7 +6,6 @@ import {
   Mail,
   Zap,
   ArrowUpRight,
-  CheckCircle2,
   PhoneCall
 } from 'lucide-react';
 

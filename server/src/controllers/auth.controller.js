@@ -11,8 +11,8 @@ const login = wrap(async (req, res) => {
   res.json({ success: true, message: "Logged in.", data });
 });
 
-const me = wrap((req, res) => {
-  const user = authService.getMe(req.user.id);
+const me = wrap(async (req, res) => {
+  const user = await authService.getMe(req.user.id);
   res.json({ success: true, data: { user } });
 });
 

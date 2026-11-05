@@ -8,5 +8,6 @@ router.use('/contacts', require('./contact.routes'));
 router.use('/lists', require('./list.routes'));
 router.use('/follow-ups', require('./followUp.routes'));
 router.use('/dashboard', require('./dashboard.routes'));
+router.use('/interactions', require('./interaction.routes'));
 
 module.exports = router;

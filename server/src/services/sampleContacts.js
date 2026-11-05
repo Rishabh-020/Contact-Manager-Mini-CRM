@@ -30,4 +30,127 @@ function sampleContacts() {
   }));
 }
 
-module.exports = { sampleContacts };
+function sampleLists(contacts, userId) {
+  const contactIds = contacts.map((c) => c.id);
+  const now = new Date().toISOString();
+  return [
+    {
+      id: crypto.randomUUID(),
+      userId,
+      name: 'Strategic Tech Partners',
+      description: 'Key engineering directors and technology partners collaborating on cloud API integrations.',
+      color: 'blue',
+      contactIds: [contactIds[0], contactIds[1], contactIds[2]].filter(Boolean),
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: crypto.randomUUID(),
+      userId,
+      name: 'High Priority Enterprise Leads',
+      description: 'Prospects evaluating enterprise procurement and annual software contracts.',
+      color: 'purple',
+      contactIds: [contactIds[0], contactIds[3], contactIds[4]].filter(Boolean),
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
+}
+
+function sampleFollowUps(contacts, userId) {
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+  const nextWeek = new Date(now);
+  nextWeek.setDate(nextWeek.getDate() + 7);
+  const nextWeekStr = nextWeek.toISOString().split('T')[0];
+
+  return [
+    {
+      id: crypto.randomUUID(),
+      userId,
+      contactId: contacts[0]?.id || '',
+      description: 'Follow up on Q3 CRM enterprise integration budget approval.',
+      dueDate: todayStr,
+      priority: 'high',
+      status: 'pending',
+      completedAt: null,
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+    },
+    {
+      id: crypto.randomUUID(),
+      userId,
+      contactId: contacts[1]?.id || '',
+      description: 'Architecture sync call regarding cloud migration roadmap.',
+      dueDate: tomorrowStr,
+      priority: 'medium',
+      status: 'pending',
+      completedAt: null,
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+    },
+    {
+      id: crypto.randomUUID(),
+      userId,
+      contactId: contacts[3]?.id || '',
+      description: 'Review UI/UX prototype feedback with design lead.',
+      dueDate: nextWeekStr,
+      priority: 'low',
+      status: 'pending',
+      completedAt: null,
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+    },
+  ];
+}
+
+function sampleInteractions(contacts, userId) {
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  return [
+    {
+      id: crypto.randomUUID(),
+      userId,
+      contactId: contacts[0]?.id || '',
+      type: 'call',
+      title: 'Phone Consultation',
+      note: 'Discussed contract terms and multi-seat team licensing discount.',
+      date: yesterday.toISOString(),
+      createdAt: yesterday.toISOString(),
+    },
+    {
+      id: crypto.randomUUID(),
+      userId,
+      contactId: contacts[1]?.id || '',
+      type: 'meeting',
+      title: 'Demo Presentation',
+      note: 'Walked through real-time sync architecture and data export capabilities.',
+      date: now.toISOString(),
+      createdAt: now.toISOString(),
+    },
+    {
+      id: crypto.randomUUID(),
+      userId,
+      contactId: contacts[3]?.id || '',
+      type: 'email',
+      title: 'Design Specs Sent',
+      note: 'Dispatched updated responsive Figma tokens and Tailwind color palette.',
+      date: yesterday.toISOString(),
+      createdAt: yesterday.toISOString(),
+    },
+  ];
+}
+
+module.exports = {
+  sampleContacts,
+  sampleLists,
+  sampleFollowUps,
+  sampleInteractions,
+};

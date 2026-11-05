@@ -5,13 +5,11 @@ import {
   Menu,
   X,
   LayoutDashboard,
-  Users,
   LogOut,
   ArrowRight,
   Home,
   Info,
   Mail,
-  UserCheck
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext.jsx';
 
