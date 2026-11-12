@@ -13,17 +13,12 @@ import {
   ShieldCheck,
   Zap,
   Star,
-  Clock,
   ChevronDown,
-  Building2,
   Mail,
   Phone,
   LayoutDashboard,
   Check,
   X as CloseIcon,
-  HelpCircle,
-  MessageSquare,
-  Award
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext.jsx';
 

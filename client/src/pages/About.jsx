@@ -2,25 +2,16 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   Sparkles,
-  Users,
   CalendarClock,
   ShieldCheck,
   Zap,
   Code2,
-  Database,
   Layers,
-  Heart,
   CheckCircle2,
   ArrowRight,
   Server,
-  Cpu,
-  Globe,
-  Award,
-  Terminal,
   FileSpreadsheet,
-  FolderOpen,
   Mail,
-  UserCheck
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext.jsx';
 

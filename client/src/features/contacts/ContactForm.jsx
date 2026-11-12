@@ -11,13 +11,12 @@ import {
   Calendar,
   FileText,
   Star,
-  Check,
   AlertCircle,
   Save,
-  Plus,
   X,
 } from "lucide-react";
-import { useContacts } from "../App.jsx";
+import { useContacts } from "../../App.jsx";
+import { getContact } from "../../api/contactApi.js";
 
 const SUGGESTED_TAGS = [
   "Lead",
@@ -37,7 +36,7 @@ export default function ContactForm() {
 
   const { contacts, addContact, updateContact } = useContacts();
 
-  // Form Stateḍ
+  // Form State
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -56,8 +55,10 @@ export default function ContactForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notFound, setNotFound] = useState(false);
 
-  // If edit mode, load existing contact
+  // If edit mode, load existing contact (from context or direct API fallback)
   useEffect(() => {
+    let isMounted = true;
+
     if (isEditMode) {
       const existing = contacts.find((c) => c.id === id);
       if (existing) {
@@ -71,12 +72,45 @@ export default function ContactForm() {
           tags: Array.isArray(existing.tags) ? [...existing.tags] : [],
           notes: existing.notes || "",
           isFavorite: Boolean(existing.isFavorite),
-          followUpDate: existing.followUpDate || "",
+          followUpDate: existing.followUpDate
+            ? existing.followUpDate.split("T")[0]
+            : "",
         });
+        setNotFound(false);
       } else {
-        setNotFound(true);
+        // Fallback to direct API if not yet in memory
+        getContact(id)
+          .then((fetched) => {
+            if (!isMounted) return;
+            if (fetched) {
+              setFormData({
+                firstName: fetched.firstName || "",
+                lastName: fetched.lastName || "",
+                email: fetched.email || "",
+                phone: fetched.phone || "",
+                company: fetched.company || "",
+                designation: fetched.designation || "",
+                tags: Array.isArray(fetched.tags) ? [...fetched.tags] : [],
+                notes: fetched.notes || "",
+                isFavorite: Boolean(fetched.isFavorite),
+                followUpDate: fetched.followUpDate
+                  ? fetched.followUpDate.split("T")[0]
+                  : "",
+              });
+              setNotFound(false);
+            } else {
+              setNotFound(true);
+            }
+          })
+          .catch(() => {
+            if (isMounted) setNotFound(true);
+          });
       }
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [id, isEditMode, contacts]);
 
   // Handle standard input change
@@ -162,7 +196,7 @@ export default function ContactForm() {
           c.id !== id &&
           c.phone &&
           c.phone.trim().replace(/[\s\-\(\)\+]/g, "") ===
-            formData.phone.trim().replace(/[\s\-\(\)\+]/g, ""),
+          formData.phone.trim().replace(/[\s\-\(\)\+]/g, ""),
       );
       if (duplicatePhone) {
         newErrors.phone = `A contact with this phone number already exists (${duplicatePhone.firstName} ${duplicatePhone.lastName || ""}).`;
@@ -200,11 +234,19 @@ export default function ContactForm() {
 
     try {
       if (isEditMode) {
-        updateContact(id, payload);
-        navigate(`/contacts/${id}`);
+        const res = await updateContact(id, payload);
+        if (res !== null) {
+          navigate(`/contacts/${id}`);
+        } else {
+          setIsSubmitting(false);
+        }
       } else {
         const created = await addContact(payload);
-        navigate(`/contacts/${created.id}`);
+        if (created && created.id) {
+          navigate(`/contacts/${created.id}`);
+        } else {
+          setIsSubmitting(false);
+        }
       }
     } catch (err) {
       console.error("Submission failed", err);
@@ -285,11 +327,10 @@ export default function ContactForm() {
                   value={formData.firstName}
                   onChange={handleChange}
                   placeholder="e.g. Aarav"
-                  className={`w-full px-3.5 py-2 text-sm rounded-xl border bg-slate-50/50 focus:bg-white transition-all outline-hidden ${
-                    errors.firstName
+                  className={`w-full px-3.5 py-2 text-sm rounded-xl border bg-slate-50/50 focus:bg-white transition-all outline-hidden ${errors.firstName
                       ? "border-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-100"
                       : "border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  }`}
+                    }`}
                 />
                 {errors.firstName && (
                   <p className="text-xs text-rose-600 mt-1 flex items-center gap-1">
@@ -337,11 +378,10 @@ export default function ContactForm() {
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="aarav.sharma@example.com"
-                    className={`w-full pl-9 pr-3.5 py-2 text-sm rounded-xl border bg-slate-50/50 focus:bg-white transition-all outline-hidden ${
-                      errors.email
+                    className={`w-full pl-9 pr-3.5 py-2 text-sm rounded-xl border bg-slate-50/50 focus:bg-white transition-all outline-hidden ${errors.email
                         ? "border-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-100"
                         : "border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    }`}
+                      }`}
                   />
                 </div>
                 {errors.email && (
@@ -365,11 +405,10 @@ export default function ContactForm() {
                     value={formData.phone}
                     onChange={handleChange}
                     placeholder="+91 98765 43210"
-                    className={`w-full pl-9 pr-3.5 py-2 text-sm rounded-xl border bg-slate-50/50 focus:bg-white transition-all outline-hidden ${
-                      errors.phone
+                    className={`w-full pl-9 pr-3.5 py-2 text-sm rounded-xl border bg-slate-50/50 focus:bg-white transition-all outline-hidden ${errors.phone
                         ? "border-rose-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-100"
                         : "border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    }`}
+                      }`}
                   />
                 </div>
                 {errors.phone && (
@@ -544,11 +583,10 @@ export default function ContactForm() {
                   />
                   <div className="flex items-center gap-1.5 text-xs font-medium text-slate-700">
                     <Star
-                      className={`w-4 h-4 ${
-                        formData.isFavorite
+                      className={`w-4 h-4 ${formData.isFavorite
                           ? "fill-amber-500 text-amber-500"
                           : "text-slate-400"
-                      }`}
+                        }`}
                     />
                     <span>Mark as Favourite Contact</span>
                   </div>
@@ -591,11 +629,10 @@ export default function ContactForm() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-semibold rounded-xl shadow-xs shadow-blue-600/30 transition-all hover:shadow-md ${
-                isSubmitting
+              className={`inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-semibold rounded-xl shadow-xs shadow-blue-600/30 transition-all hover:shadow-md ${isSubmitting
                   ? "opacity-60 cursor-not-allowed"
                   : "active:scale-[0.98]"
-              }`}
+                }`}
             >
               <Save className="w-4 h-4" />
               <span>

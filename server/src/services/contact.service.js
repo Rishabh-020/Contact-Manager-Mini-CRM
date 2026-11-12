@@ -1,7 +1,14 @@
-const crypto = require("crypto");
-const { getContactMap, saveContactMap } = require("../config/db");
+const Contact = require("../models/Contact");
+const FollowUp = require("../models/FollowUp");
+const Interaction = require("../models/Interaction");
+const ContactList = require("../models/ContactList");
 const httpError = require("../utils/httpError");
-const { sampleContacts } = require("./sampleContacts");
+const {
+  sampleContacts,
+  sampleLists,
+  sampleFollowUps,
+  sampleInteractions,
+} = require("./sampleContacts");
 
 // The fields a user is allowed to send.
 const FIELDS = [
@@ -17,19 +24,6 @@ const FIELDS = [
   "followUpDate",
 ];
 
-// Gets the contact list of ONE user from the map.
-function getMyList(userId) {
-  return getContactMap()[userId] || [];
-}
-
-// Saves the contact list of ONE user back into the map.
-function saveMyList(userId, list) {
-  const map = getContactMap();
-  map[userId] = list;
-  saveContactMap(map);
-}
-
-// Keeps only the allowed fields from the request.
 function pickFields(body) {
   const result = {};
   FIELDS.forEach((field) => {
@@ -38,22 +32,19 @@ function pickFields(body) {
   return result;
 }
 
-// Trims text and makes the email lowercase.
 function cleanFields(fields) {
   const result = { ...fields };
-  [
-    "firstName",
-    "lastName",
-    "email",
-    "phone",
-    "company",
-    "designation",
-    "notes",
-  ].forEach((field) => {
-    if (result[field] !== undefined)
-      result[field] = String(result[field]).trim();
+  ["firstName", "lastName", "company", "designation", "notes"].forEach((key) => {
+    if (result[key] !== undefined) {
+      result[key] = String(result[key]).trim();
+    }
   });
-  if (result.email !== undefined) result.email = result.email.toLowerCase();
+  if (result.email !== undefined) {
+    result.email = String(result.email).trim().toLowerCase();
+  }
+  if (result.phone !== undefined) {
+    result.phone = String(result.phone).trim();
+  }
   if (result.tags !== undefined) {
     result.tags = Array.isArray(result.tags)
       ? result.tags.map((t) => String(t).trim()).filter(Boolean)
@@ -62,57 +53,52 @@ function cleanFields(fields) {
   return result;
 }
 
-function checkFirstName(value) {
-  if (!String(value || "").trim())
-    throw httpError(400, "First name is required.");
-}
-
-// Stops a second active contact with the same email in this user's list.
-function checkEmailFree(list, email, ownId) {
-  if (!email) return;
-  const taken = list.some(
-    (c) =>
-      !c.isDeleted &&
-      c.id !== ownId &&
-      (c.email || "").toLowerCase() === email.toLowerCase(),
-  );
-  if (taken) throw httpError(409, "A contact with this email already exists.");
-}
-
-// Finds one contact in the user's list, or stops with 404.
-function findMine(list, id) {
-  const contact = list.find((c) => c.id === id);
-  if (!contact) throw httpError(404, "Contact not found.");
-  return contact;
+function formatDoc(doc) {
+  if (!doc) return null;
+  const obj = doc.toObject ? doc.toObject() : { ...doc };
+  obj.id = String(obj._id || obj.id);
+  delete obj.__v;
+  return obj;
 }
 
 // ---------- The functions the controller uses ----------
 
-function listContacts(userId, query) {
-  const status = query.status || "active";
-  const search = String(query.search || "").toLowerCase();
-  const limit = Math.min(100, Number(query.limit) || 20);
-  const page = Math.max(1, Number(query.page) || 1);
+async function listContacts(userId, query = {}) {
+  const q = query || {};
+  const status = q.status || "active";
+  const search = String(q.search || "").trim();
+  const limit = Math.min(100, Number(q.limit) || 20);
+  const page = Math.max(1, Number(q.page) || 1);
 
-  let list = getMyList(userId);
-  if (status === "active") list = list.filter((c) => !c.isDeleted);
-  if (status === "deleted") list = list.filter((c) => c.isDeleted);
-  if (query.favorite === "true") list = list.filter((c) => c.isFavorite);
+  const filter = { userId: String(userId) };
+
+  if (status === "active") filter.isDeleted = false;
+  if (status === "deleted") filter.isDeleted = true;
+  if (q.favorite === "true") filter.isFavorite = true;
+
   if (search) {
-    list = list.filter((c) =>
-      [c.firstName, c.lastName, c.email, c.phone, c.company].some((v) =>
-        (v || "").toLowerCase().includes(search),
-      ),
-    );
+    const regex = new RegExp(search, "i");
+    filter.$or = [
+      { firstName: regex },
+      { lastName: regex },
+      { email: regex },
+      { phone: regex },
+      { company: regex },
+      { designation: regex },
+    ];
   }
-  list = [...list].sort((a, b) => b.createdAt.localeCompare(a.createdAt)); // newest first
 
-  const total = list.length;
+  const total = await Contact.countDocuments(filter);
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const start = (page - 1) * limit;
 
+  const docs = await Contact.find(filter)
+    .sort({ createdAt: -1 })
+    .skip(start)
+    .limit(limit);
+
   return {
-    contacts: list.slice(start, start + limit),
+    contacts: docs.map(formatDoc),
     pagination: {
       page,
       limit,
@@ -124,108 +110,151 @@ function listContacts(userId, query) {
   };
 }
 
-function createContact(userId, body) {
-  const fields = cleanFields(pickFields(body));
-  checkFirstName(fields.firstName);
-
-  const list = getMyList(userId);
-  checkEmailFree(list, fields.email, null);
-
-  const now = new Date().toISOString();
-  const contact = {
-    id: crypto.randomUUID(),
-    lastName: "",
-    email: "",
-    phone: "",
-    company: "",
-    designation: "",
-    tags: [],
-    notes: "",
-    isFavorite: false,
-    followUpDate: null,
-    ...fields,
-    isDeleted: false,
-    deletedAt: null,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  list.push(contact);
-  saveMyList(userId, list);
-  return contact;
+async function getContactById(userId, id) {
+  const contact = await Contact.findOne({ _id: id, userId: String(userId) });
+  if (!contact) throw httpError(404, "Contact not found.");
+  return formatDoc(contact);
 }
 
-function updateContact(userId, id, body) {
-  const list = getMyList(userId);
-  const contact = findMine(list, id);
-  const changes = cleanFields(pickFields(body));
+async function createContact(userId, body) {
+  const clean = cleanFields(pickFields(body));
+  if (!clean.firstName) throw httpError(400, "First name is required.");
 
-  if (changes.firstName !== undefined) checkFirstName(changes.firstName);
-  const email = changes.email !== undefined ? changes.email : contact.email;
-  checkEmailFree(list, email, id);
-
-  Object.assign(contact, changes, { updatedAt: new Date().toISOString() });
-  saveMyList(userId, list);
-  return contact;
-}
-
-// Soft delete: the contact moves to the trash. Nothing is erased.
-function softDeleteContact(userId, id) {
-  const list = getMyList(userId);
-  const contact = findMine(list, id);
-  const now = new Date().toISOString();
-  Object.assign(contact, { isDeleted: true, deletedAt: now, updatedAt: now });
-  saveMyList(userId, list);
-  return contact;
-}
-
-function restoreContact(userId, id) {
-  const list = getMyList(userId);
-  const contact = findMine(list, id);
-  checkEmailFree(list, contact.email, id);
-  Object.assign(contact, {
-    isDeleted: false,
-    deletedAt: null,
-    updatedAt: new Date().toISOString(),
-  });
-  saveMyList(userId, list);
-  return contact;
-}
-
-function toggleFavorite(userId, id) {
-  const list = getMyList(userId);
-  const contact = findMine(list, id);
-  contact.isFavorite = !contact.isFavorite;
-  contact.updatedAt = new Date().toISOString();
-  saveMyList(userId, list);
-  return contact;
-}
-
-// Permanent delete: only for contacts already in the trash.
-function permanentDeleteContact(userId, id) {
-  const list = getMyList(userId);
-  const contact = findMine(list, id);
-  if (!contact.isDeleted) {
-    throw httpError(400, "Move the contact to Deleted Contacts first.");
+  if (clean.email) {
+    const taken = await Contact.findOne({
+      userId: String(userId),
+      email: clean.email,
+      isDeleted: false,
+    });
+    if (taken) throw httpError(409, "A contact with this email already exists.");
   }
-  saveMyList(
-    userId,
-    list.filter((c) => c.id !== id),
-  );
+
+  const created = await Contact.create({
+    ...clean,
+    userId: String(userId),
+    isDeleted: false,
+    deletedAt: null,
+  });
+
+  return formatDoc(created);
 }
 
-// Only the admin can bring back the 6 sample contacts.
-function resetDemoContacts(userId, isAdmin) {
+async function updateContact(userId, id, body) {
+  const contact = await Contact.findOne({ _id: id, userId: String(userId) });
+  if (!contact) throw httpError(404, "Contact not found.");
+
+  const clean = cleanFields(pickFields(body));
+  if (clean.firstName !== undefined && !clean.firstName) {
+    throw httpError(400, "First name cannot be empty.");
+  }
+
+  if (clean.email && clean.email !== contact.email) {
+    const taken = await Contact.findOne({
+      userId: String(userId),
+      _id: { $ne: id },
+      email: clean.email,
+      isDeleted: false,
+    });
+    if (taken) throw httpError(409, "A contact with this email already exists.");
+  }
+
+  Object.assign(contact, clean);
+  await contact.save();
+
+  return formatDoc(contact);
+}
+
+async function softDeleteContact(userId, id) {
+  const contact = await Contact.findOne({ _id: id, userId: String(userId) });
+  if (!contact) throw httpError(404, "Contact not found.");
+
+  contact.isDeleted = true;
+  contact.deletedAt = new Date();
+  await contact.save();
+
+  return formatDoc(contact);
+}
+
+async function restoreContact(userId, id) {
+  const contact = await Contact.findOne({ _id: id, userId: String(userId) });
+  if (!contact) throw httpError(404, "Contact not found.");
+
+  contact.isDeleted = false;
+  contact.deletedAt = null;
+  await contact.save();
+
+  return formatDoc(contact);
+}
+
+async function toggleFavorite(userId, id) {
+  const contact = await Contact.findOne({ _id: id, userId: String(userId) });
+  if (!contact) throw httpError(404, "Contact not found.");
+
+  contact.isFavorite = !contact.isFavorite;
+  await contact.save();
+
+  return formatDoc(contact);
+}
+
+async function permanentDeleteContact(userId, id) {
+  const uId = String(userId);
+  const deleted = await Contact.findOneAndDelete({ _id: id, userId: uId });
+  if (!deleted) throw httpError(404, "Contact not found.");
+
+  // Cascading cleanup across lists, followups, interactions
+  await FollowUp.deleteMany({ contactId: id, userId: uId });
+  await Interaction.deleteMany({ contactId: id, userId: uId });
+  await ContactList.updateMany({ userId: uId }, { $pull: { contactIds: id } });
+}
+
+// Only the admin can reset to default demo contacts.
+async function resetDemoContacts(userId, isAdmin) {
   if (!isAdmin) {
     throw httpError(403, "Only the demo admin can restore sample contacts.");
   }
-  const samples = sampleContacts();
-  saveMyList(userId, samples);
-  return samples;
+  const uId = String(userId);
+
+  // Clear existing records for this user
+  await Contact.deleteMany({ userId: uId });
+  await ContactList.deleteMany({ userId: uId });
+  await FollowUp.deleteMany({ userId: uId });
+  await Interaction.deleteMany({ userId: uId });
+
+  const rawContacts = sampleContacts();
+  const contactsWithUser = rawContacts.map((c) => ({
+    ...c,
+    _id: c.id,
+    userId: uId,
+  }));
+  const savedContacts = await Contact.insertMany(contactsWithUser);
+
+  const rawLists = sampleLists(savedContacts, uId);
+  if (rawLists.length > 0) {
+    await ContactList.insertMany(
+      rawLists.map((l) => ({ ...l, _id: l.id, userId: uId }))
+    );
+  }
+
+  const rawFollowUps = sampleFollowUps(savedContacts, uId);
+  if (rawFollowUps.length > 0) {
+    await FollowUp.insertMany(
+      rawFollowUps.map((f) => ({ ...f, _id: f.id, userId: uId }))
+    );
+  }
+
+  const rawInteractions = sampleInteractions(savedContacts, uId);
+  if (rawInteractions.length > 0) {
+    await Interaction.insertMany(
+      rawInteractions.map((i) => ({ ...i, _id: i.id, userId: uId }))
+    );
+  }
+
+  return savedContacts.map(formatDoc);
 }
 
 module.exports = {
   listContacts,
+  getContactById,
   createContact,
   updateContact,
   softDeleteContact,
