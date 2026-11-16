@@ -1,18 +1,4 @@
-let mongoose;
-try {
-  mongoose = require("mongoose");
-} catch {
-  mongoose = {
-    Schema: class Schema {
-      constructor(def, opts) { this.definition = def; this.options = opts; }
-      index() {}
-      set() {}
-    },
-    model: (name, schema) => ({ modelName: name, schema }),
-    models: {},
-    Types: { ObjectId: class ObjectId { toString() { return require("crypto").randomUUID(); } } }
-  };
-}
+const mongoose = require('mongoose');
 
 const followUpSchema = new mongoose.Schema(
   {
@@ -21,8 +7,8 @@ const followUpSchema = new mongoose.Schema(
     contactId: { type: String, required: true, index: true },
     description: { type: String, required: true, trim: true },
     dueDate: { type: String, required: true },
-    priority: { type: String, enum: ["low", "medium", "high"], default: "medium" },
-    status: { type: String, enum: ["pending", "completed"], default: "pending" },
+    priority: { type: String, enum: ['low', 'medium', 'high'], default: 'medium' },
+    status: { type: String, enum: ['pending', 'completed'], default: 'pending' },
     completedAt: { type: Date, default: null },
   },
   { timestamps: true }
@@ -30,7 +16,7 @@ const followUpSchema = new mongoose.Schema(
 
 followUpSchema.index({ userId: 1, status: 1, dueDate: 1 });
 
-followUpSchema.set("toJSON", {
+followUpSchema.set('toJSON', {
   virtuals: true,
   transform: (doc, ret) => {
     ret.id = ret._id;
@@ -39,4 +25,4 @@ followUpSchema.set("toJSON", {
   },
 });
 
-module.exports = (mongoose.models && mongoose.models.FollowUp) || mongoose.model("FollowUp", followUpSchema);
+module.exports = mongoose.models.FollowUp || mongoose.model('FollowUp', followUpSchema);

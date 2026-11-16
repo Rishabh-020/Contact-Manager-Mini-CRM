@@ -3,6 +3,7 @@ const FollowUp = require("../models/FollowUp");
 const Interaction = require("../models/Interaction");
 const ContactList = require("../models/ContactList");
 const httpError = require("../utils/httpError");
+const { generateCSV, parseCSV } = require("../utils/csv");
 const {
   sampleContacts,
   sampleLists,
@@ -20,6 +21,7 @@ const FIELDS = [
   "designation",
   "tags",
   "notes",
+  "photoUrl",
   "isFavorite",
   "followUpDate",
 ];
@@ -34,7 +36,7 @@ function pickFields(body) {
 
 function cleanFields(fields) {
   const result = { ...fields };
-  ["firstName", "lastName", "company", "designation", "notes"].forEach((key) => {
+  ["firstName", "lastName", "company", "designation", "notes", "photoUrl"].forEach((key) => {
     if (result[key] !== undefined) {
       result[key] = String(result[key]).trim();
     }
@@ -61,6 +63,16 @@ function formatDoc(doc) {
   return obj;
 }
 
+// Parses ?sort=-createdAt or ?sort=firstName into Mongoose sort object
+function parseSortParam(sortParam) {
+  if (!sortParam) return { createdAt: -1 };
+  const isDesc = sortParam.startsWith("-");
+  const field = isDesc ? sortParam.substring(1) : sortParam;
+  const allowed = ["createdAt", "updatedAt", "firstName", "lastName", "company", "email"];
+  if (!allowed.includes(field)) return { createdAt: -1 };
+  return { [field]: isDesc ? -1 : 1 };
+}
+
 // ---------- The functions the controller uses ----------
 
 async function listContacts(userId, query = {}) {
@@ -75,6 +87,7 @@ async function listContacts(userId, query = {}) {
   if (status === "active") filter.isDeleted = false;
   if (status === "deleted") filter.isDeleted = true;
   if (q.favorite === "true") filter.isFavorite = true;
+  if (q.tag && q.tag !== "ALL") filter.tags = q.tag;
 
   if (search) {
     const regex = new RegExp(search, "i");
@@ -88,12 +101,14 @@ async function listContacts(userId, query = {}) {
     ];
   }
 
+  const sortOrder = parseSortParam(q.sort);
+
   const total = await Contact.countDocuments(filter);
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const start = (page - 1) * limit;
 
   const docs = await Contact.find(filter)
-    .sort({ createdAt: -1 })
+    .sort(sortOrder)
     .skip(start)
     .limit(limit);
 
@@ -120,18 +135,31 @@ async function createContact(userId, body) {
   const clean = cleanFields(pickFields(body));
   if (!clean.firstName) throw httpError(400, "First name is required.");
 
+  const uId = String(userId);
+
+  // Duplicate detection by email
   if (clean.email) {
     const taken = await Contact.findOne({
-      userId: String(userId),
+      userId: uId,
       email: clean.email,
       isDeleted: false,
     });
     if (taken) throw httpError(409, "A contact with this email already exists.");
   }
 
+  // Duplicate detection by phone
+  if (clean.phone) {
+    const phoneTaken = await Contact.findOne({
+      userId: uId,
+      phone: clean.phone,
+      isDeleted: false,
+    });
+    if (phoneTaken) throw httpError(409, "A contact with this phone number already exists.");
+  }
+
   const created = await Contact.create({
     ...clean,
-    userId: String(userId),
+    userId: uId,
     isDeleted: false,
     deletedAt: null,
   });
@@ -140,7 +168,8 @@ async function createContact(userId, body) {
 }
 
 async function updateContact(userId, id, body) {
-  const contact = await Contact.findOne({ _id: id, userId: String(userId) });
+  const uId = String(userId);
+  const contact = await Contact.findOne({ _id: id, userId: uId });
   if (!contact) throw httpError(404, "Contact not found.");
 
   const clean = cleanFields(pickFields(body));
@@ -148,14 +177,26 @@ async function updateContact(userId, id, body) {
     throw httpError(400, "First name cannot be empty.");
   }
 
+  // Duplicate detection by email (excluding current contact)
   if (clean.email && clean.email !== contact.email) {
     const taken = await Contact.findOne({
-      userId: String(userId),
+      userId: uId,
       _id: { $ne: id },
       email: clean.email,
       isDeleted: false,
     });
     if (taken) throw httpError(409, "A contact with this email already exists.");
+  }
+
+  // Duplicate detection by phone (excluding current contact)
+  if (clean.phone && clean.phone !== contact.phone) {
+    const phoneTaken = await Contact.findOne({
+      userId: uId,
+      _id: { $ne: id },
+      phone: clean.phone,
+      isDeleted: false,
+    });
+    if (phoneTaken) throw httpError(409, "A contact with this phone number already exists.");
   }
 
   Object.assign(contact, clean);
@@ -205,6 +246,138 @@ async function permanentDeleteContact(userId, id) {
   await FollowUp.deleteMany({ contactId: id, userId: uId });
   await Interaction.deleteMany({ contactId: id, userId: uId });
   await ContactList.updateMany({ userId: uId }, { $pull: { contactIds: id } });
+}
+
+// Server-side CSV Export matching filtered view
+async function exportContactsCSV(userId, query = {}) {
+  const filter = { userId: String(userId), isDeleted: false };
+  if (query.favorite === "true") filter.isFavorite = true;
+  if (query.tag && query.tag !== "ALL") filter.tags = query.tag;
+
+  if (query.search) {
+    const regex = new RegExp(String(query.search).trim(), "i");
+    filter.$or = [
+      { firstName: regex },
+      { lastName: regex },
+      { email: regex },
+      { phone: regex },
+      { company: regex },
+      { designation: regex },
+    ];
+  }
+
+  const sortOrder = parseSortParam(query.sort);
+  const docs = await Contact.find(filter).sort(sortOrder);
+
+  const headers = [
+    "firstName",
+    "lastName",
+    "email",
+    "phone",
+    "company",
+    "designation",
+    "tags",
+    "notes",
+  ];
+
+  const rows = docs.map((c) => [
+    c.firstName || "",
+    c.lastName || "",
+    c.email || "",
+    c.phone || "",
+    c.company || "",
+    c.designation || "",
+    (c.tags || []).join(";"),
+    c.notes || "",
+  ]);
+
+  return generateCSV(headers, rows);
+}
+
+// Server-side CSV Import with row-level validation and error reporting
+async function importContactsCSV(userId, csvText) {
+  const uId = String(userId);
+  const parsedRows = parseCSV(csvText);
+
+  if (parsedRows.length === 0) {
+    throw httpError(400, "No valid data rows found in CSV.");
+  }
+
+  const errors = [];
+  const contactsToInsert = [];
+
+  // Pre-load existing active emails and phones to prevent duplicates
+  const existingContacts = await Contact.find(
+    { userId: uId, isDeleted: false },
+    { email: 1, phone: 1 }
+  );
+  const existingEmails = new Set(
+    existingContacts.map((c) => (c.email || "").toLowerCase()).filter(Boolean)
+  );
+  const existingPhones = new Set(
+    existingContacts.map((c) => (c.phone || "").trim()).filter(Boolean)
+  );
+
+  for (const { rowNumber, data } of parsedRows) {
+    const firstName = data.firstname || data["first name"] || data.first_name || "";
+    const lastName = data.lastname || data["last name"] || data.last_name || "";
+    const email = (data.email || "").trim().toLowerCase();
+    const phone = (data.phone || "").trim();
+    const company = data.company || "";
+    const designation = data.designation || data.role || "";
+    const rawTags = data.tags || data.tag || "";
+    const tags = rawTags
+      ? rawTags.split(/[;,]/).map((t) => t.trim()).filter(Boolean)
+      : ["Imported"];
+    const notes = data.notes || data.note || "Imported via CSV";
+
+    if (!firstName.trim()) {
+      errors.push({ row: rowNumber, error: "First name is required." });
+      continue;
+    }
+
+    if (email && existingEmails.has(email)) {
+      errors.push({ row: rowNumber, error: `Email "${email}" is already used by an existing contact.` });
+      continue;
+    }
+
+    if (phone && existingPhones.has(phone)) {
+      errors.push({ row: rowNumber, error: `Phone "${phone}" is already used by an existing contact.` });
+      continue;
+    }
+
+    if (email) existingEmails.add(email);
+    if (phone) existingPhones.add(phone);
+
+    contactsToInsert.push({
+      userId: uId,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email,
+      phone,
+      company: company.trim(),
+      designation: designation.trim(),
+      tags,
+      notes: notes.trim(),
+      isDeleted: false,
+      deletedAt: null,
+      isFavorite: false,
+      followUpDate: null,
+    });
+  }
+
+  let importedCount = 0;
+  if (contactsToInsert.length > 0) {
+    const inserted = await Contact.insertMany(contactsToInsert);
+    importedCount = inserted.length;
+  }
+
+  return {
+    totalRows: parsedRows.length,
+    importedCount,
+    failedCount: errors.length,
+    errors,
+  };
 }
 
 // Only the admin can reset to default demo contacts.
@@ -262,4 +435,6 @@ module.exports = {
   toggleFavorite,
   permanentDeleteContact,
   resetDemoContacts,
+  exportContactsCSV,
+  importContactsCSV,
 };
