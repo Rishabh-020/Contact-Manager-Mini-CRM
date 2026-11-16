@@ -5,6 +5,11 @@ if (!process.env.JWT_SECRET) {
   process.exit(1);
 }
 
+if (!process.env.CLIENT_ORIGIN) {
+  console.log("CLIENT_ORIGIN(Frontend) url is missing. Add it to server/.env");
+  process.exit(1);
+}
+
 const app = require("./app");
 const { setupDataFiles } = require("./config/db");
 const { ensureAdminAccount } = require("./services/auth.service");
