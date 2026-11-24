@@ -1,7 +1,15 @@
-const crypto = require("crypto");
-const { getContactMap, saveContactMap } = require("../config/db");
+const Contact = require("../models/Contact");
+const FollowUp = require("../models/FollowUp");
+const Interaction = require("../models/Interaction");
+const ContactList = require("../models/ContactList");
 const httpError = require("../utils/httpError");
-const { sampleContacts } = require("./sampleContacts");
+const { generateCSV, parseCSV } = require("../utils/csv");
+const {
+  sampleContacts,
+  sampleLists,
+  sampleFollowUps,
+  sampleInteractions,
+} = require("./sampleContacts");
 
 // The fields a user is allowed to send.
 const FIELDS = [
@@ -13,23 +21,11 @@ const FIELDS = [
   "designation",
   "tags",
   "notes",
+  "photoUrl",
   "isFavorite",
   "followUpDate",
 ];
 
-// Gets the contact list of ONE user from the map.
-function getMyList(userId) {
-  return getContactMap()[userId] || [];
-}
-
-// Saves the contact list of ONE user back into the map.
-function saveMyList(userId, list) {
-  const map = getContactMap();
-  map[userId] = list;
-  saveContactMap(map);
-}
-
-// Keeps only the allowed fields from the request.
 function pickFields(body) {
   const result = {};
   FIELDS.forEach((field) => {
@@ -38,22 +34,19 @@ function pickFields(body) {
   return result;
 }
 
-// Trims text and makes the email lowercase.
 function cleanFields(fields) {
   const result = { ...fields };
-  [
-    "firstName",
-    "lastName",
-    "email",
-    "phone",
-    "company",
-    "designation",
-    "notes",
-  ].forEach((field) => {
-    if (result[field] !== undefined)
-      result[field] = String(result[field]).trim();
+  ["firstName", "lastName", "company", "designation", "notes", "photoUrl"].forEach((key) => {
+    if (result[key] !== undefined) {
+      result[key] = String(result[key]).trim();
+    }
   });
-  if (result.email !== undefined) result.email = result.email.toLowerCase();
+  if (result.email !== undefined) {
+    result.email = String(result.email).trim().toLowerCase();
+  }
+  if (result.phone !== undefined) {
+    result.phone = String(result.phone).trim();
+  }
   if (result.tags !== undefined) {
     result.tags = Array.isArray(result.tags)
       ? result.tags.map((t) => String(t).trim()).filter(Boolean)
@@ -62,57 +55,65 @@ function cleanFields(fields) {
   return result;
 }
 
-function checkFirstName(value) {
-  if (!String(value || "").trim())
-    throw httpError(400, "First name is required.");
+function formatDoc(doc) {
+  if (!doc) return null;
+  const obj = doc.toObject ? doc.toObject() : { ...doc };
+  obj.id = String(obj._id || obj.id);
+  delete obj.__v;
+  return obj;
 }
 
-// Stops a second active contact with the same email in this user's list.
-function checkEmailFree(list, email, ownId) {
-  if (!email) return;
-  const taken = list.some(
-    (c) =>
-      !c.isDeleted &&
-      c.id !== ownId &&
-      (c.email || "").toLowerCase() === email.toLowerCase(),
-  );
-  if (taken) throw httpError(409, "A contact with this email already exists.");
-}
-
-// Finds one contact in the user's list, or stops with 404.
-function findMine(list, id) {
-  const contact = list.find((c) => c.id === id);
-  if (!contact) throw httpError(404, "Contact not found.");
-  return contact;
+// Parses ?sort=-createdAt or ?sort=firstName into Mongoose sort object
+function parseSortParam(sortParam) {
+  if (!sortParam) return { createdAt: -1 };
+  const isDesc = sortParam.startsWith("-");
+  const field = isDesc ? sortParam.substring(1) : sortParam;
+  const allowed = ["createdAt", "updatedAt", "firstName", "lastName", "company", "email"];
+  if (!allowed.includes(field)) return { createdAt: -1 };
+  return { [field]: isDesc ? -1 : 1 };
 }
 
 // ---------- The functions the controller uses ----------
 
-function listContacts(userId, query) {
-  const status = query.status || "active";
-  const search = String(query.search || "").toLowerCase();
-  const limit = Math.min(100, Number(query.limit) || 20);
-  const page = Math.max(1, Number(query.page) || 1);
+async function listContacts(userId, query = {}) {
+  const q = query || {};
+  const status = q.status || "active";
+  const search = String(q.search || "").trim();
+  const limit = Math.min(100, Number(q.limit) || 20);
+  const page = Math.max(1, Number(q.page) || 1);
 
-  let list = getMyList(userId);
-  if (status === "active") list = list.filter((c) => !c.isDeleted);
-  if (status === "deleted") list = list.filter((c) => c.isDeleted);
-  if (query.favorite === "true") list = list.filter((c) => c.isFavorite);
+  const filter = { userId: String(userId) };
+
+  if (status === "active") filter.isDeleted = false;
+  if (status === "deleted") filter.isDeleted = true;
+  if (q.favorite === "true") filter.isFavorite = true;
+  if (q.tag && q.tag !== "ALL") filter.tags = q.tag;
+
   if (search) {
-    list = list.filter((c) =>
-      [c.firstName, c.lastName, c.email, c.phone, c.company].some((v) =>
-        (v || "").toLowerCase().includes(search),
-      ),
-    );
+    const regex = new RegExp(search, "i");
+    filter.$or = [
+      { firstName: regex },
+      { lastName: regex },
+      { email: regex },
+      { phone: regex },
+      { company: regex },
+      { designation: regex },
+    ];
   }
-  list = [...list].sort((a, b) => b.createdAt.localeCompare(a.createdAt)); // newest first
 
-  const total = list.length;
+  const sortOrder = parseSortParam(q.sort);
+
+  const total = await Contact.countDocuments(filter);
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const start = (page - 1) * limit;
 
+  const docs = await Contact.find(filter)
+    .sort(sortOrder)
+    .skip(start)
+    .limit(limit);
+
   return {
-    contacts: list.slice(start, start + limit),
+    contacts: docs.map(formatDoc),
     pagination: {
       page,
       limit,
@@ -124,108 +125,309 @@ function listContacts(userId, query) {
   };
 }
 
-function createContact(userId, body) {
-  const fields = cleanFields(pickFields(body));
-  checkFirstName(fields.firstName);
-
-  const list = getMyList(userId);
-  checkEmailFree(list, fields.email, null);
-
-  const now = new Date().toISOString();
-  const contact = {
-    id: crypto.randomUUID(),
-    lastName: "",
-    email: "",
-    phone: "",
-    company: "",
-    designation: "",
-    tags: [],
-    notes: "",
-    isFavorite: false,
-    followUpDate: null,
-    ...fields,
-    isDeleted: false,
-    deletedAt: null,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  list.push(contact);
-  saveMyList(userId, list);
-  return contact;
+async function getContactById(userId, id) {
+  const contact = await Contact.findOne({ _id: id, userId: String(userId) });
+  if (!contact) throw httpError(404, "Contact not found.");
+  return formatDoc(contact);
 }
 
-function updateContact(userId, id, body) {
-  const list = getMyList(userId);
-  const contact = findMine(list, id);
-  const changes = cleanFields(pickFields(body));
+async function createContact(userId, body) {
+  const clean = cleanFields(pickFields(body));
+  if (!clean.firstName) throw httpError(400, "First name is required.");
 
-  if (changes.firstName !== undefined) checkFirstName(changes.firstName);
-  const email = changes.email !== undefined ? changes.email : contact.email;
-  checkEmailFree(list, email, id);
+  const uId = String(userId);
 
-  Object.assign(contact, changes, { updatedAt: new Date().toISOString() });
-  saveMyList(userId, list);
-  return contact;
-}
-
-// Soft delete: the contact moves to the trash. Nothing is erased.
-function softDeleteContact(userId, id) {
-  const list = getMyList(userId);
-  const contact = findMine(list, id);
-  const now = new Date().toISOString();
-  Object.assign(contact, { isDeleted: true, deletedAt: now, updatedAt: now });
-  saveMyList(userId, list);
-  return contact;
-}
-
-function restoreContact(userId, id) {
-  const list = getMyList(userId);
-  const contact = findMine(list, id);
-  checkEmailFree(list, contact.email, id);
-  Object.assign(contact, {
-    isDeleted: false,
-    deletedAt: null,
-    updatedAt: new Date().toISOString(),
-  });
-  saveMyList(userId, list);
-  return contact;
-}
-
-function toggleFavorite(userId, id) {
-  const list = getMyList(userId);
-  const contact = findMine(list, id);
-  contact.isFavorite = !contact.isFavorite;
-  contact.updatedAt = new Date().toISOString();
-  saveMyList(userId, list);
-  return contact;
-}
-
-// Permanent delete: only for contacts already in the trash.
-function permanentDeleteContact(userId, id) {
-  const list = getMyList(userId);
-  const contact = findMine(list, id);
-  if (!contact.isDeleted) {
-    throw httpError(400, "Move the contact to Deleted Contacts first.");
+  // Duplicate detection by email
+  if (clean.email) {
+    const taken = await Contact.findOne({
+      userId: uId,
+      email: clean.email,
+      isDeleted: false,
+    });
+    if (taken) throw httpError(409, "A contact with this email already exists.");
   }
-  saveMyList(
-    userId,
-    list.filter((c) => c.id !== id),
-  );
+
+  // Duplicate detection by phone
+  if (clean.phone) {
+    const phoneTaken = await Contact.findOne({
+      userId: uId,
+      phone: clean.phone,
+      isDeleted: false,
+    });
+    if (phoneTaken) throw httpError(409, "A contact with this phone number already exists.");
+  }
+
+  const created = await Contact.create({
+    ...clean,
+    userId: uId,
+    isDeleted: false,
+    deletedAt: null,
+  });
+
+  return formatDoc(created);
 }
 
-// Only the admin can bring back the 6 sample contacts.
-function resetDemoContacts(userId, isAdmin) {
+async function updateContact(userId, id, body) {
+  const uId = String(userId);
+  const contact = await Contact.findOne({ _id: id, userId: uId });
+  if (!contact) throw httpError(404, "Contact not found.");
+
+  const clean = cleanFields(pickFields(body));
+  if (clean.firstName !== undefined && !clean.firstName) {
+    throw httpError(400, "First name cannot be empty.");
+  }
+
+  // Duplicate detection by email (excluding current contact)
+  if (clean.email && clean.email !== contact.email) {
+    const taken = await Contact.findOne({
+      userId: uId,
+      _id: { $ne: id },
+      email: clean.email,
+      isDeleted: false,
+    });
+    if (taken) throw httpError(409, "A contact with this email already exists.");
+  }
+
+  // Duplicate detection by phone (excluding current contact)
+  if (clean.phone && clean.phone !== contact.phone) {
+    const phoneTaken = await Contact.findOne({
+      userId: uId,
+      _id: { $ne: id },
+      phone: clean.phone,
+      isDeleted: false,
+    });
+    if (phoneTaken) throw httpError(409, "A contact with this phone number already exists.");
+  }
+
+  Object.assign(contact, clean);
+  await contact.save();
+
+  return formatDoc(contact);
+}
+
+async function softDeleteContact(userId, id) {
+  const contact = await Contact.findOne({ _id: id, userId: String(userId) });
+  if (!contact) throw httpError(404, "Contact not found.");
+
+  contact.isDeleted = true;
+  contact.deletedAt = new Date();
+  await contact.save();
+
+  return formatDoc(contact);
+}
+
+async function restoreContact(userId, id) {
+  const contact = await Contact.findOne({ _id: id, userId: String(userId) });
+  if (!contact) throw httpError(404, "Contact not found.");
+
+  contact.isDeleted = false;
+  contact.deletedAt = null;
+  await contact.save();
+
+  return formatDoc(contact);
+}
+
+async function toggleFavorite(userId, id) {
+  const contact = await Contact.findOne({ _id: id, userId: String(userId) });
+  if (!contact) throw httpError(404, "Contact not found.");
+
+  contact.isFavorite = !contact.isFavorite;
+  await contact.save();
+
+  return formatDoc(contact);
+}
+
+async function permanentDeleteContact(userId, id) {
+  const uId = String(userId);
+  const deleted = await Contact.findOneAndDelete({ _id: id, userId: uId });
+  if (!deleted) throw httpError(404, "Contact not found.");
+
+  // Cascading cleanup across lists, followups, interactions
+  await FollowUp.deleteMany({ contactId: id, userId: uId });
+  await Interaction.deleteMany({ contactId: id, userId: uId });
+  await ContactList.updateMany({ userId: uId }, { $pull: { contactIds: id } });
+}
+
+// Server-side CSV Export matching filtered view
+async function exportContactsCSV(userId, query = {}) {
+  const filter = { userId: String(userId), isDeleted: false };
+  if (query.favorite === "true") filter.isFavorite = true;
+  if (query.tag && query.tag !== "ALL") filter.tags = query.tag;
+
+  if (query.search) {
+    const regex = new RegExp(String(query.search).trim(), "i");
+    filter.$or = [
+      { firstName: regex },
+      { lastName: regex },
+      { email: regex },
+      { phone: regex },
+      { company: regex },
+      { designation: regex },
+    ];
+  }
+
+  const sortOrder = parseSortParam(query.sort);
+  const docs = await Contact.find(filter).sort(sortOrder);
+
+  const headers = [
+    "firstName",
+    "lastName",
+    "email",
+    "phone",
+    "company",
+    "designation",
+    "tags",
+    "notes",
+  ];
+
+  const rows = docs.map((c) => [
+    c.firstName || "",
+    c.lastName || "",
+    c.email || "",
+    c.phone || "",
+    c.company || "",
+    c.designation || "",
+    (c.tags || []).join(";"),
+    c.notes || "",
+  ]);
+
+  return generateCSV(headers, rows);
+}
+
+// Server-side CSV Import with row-level validation and error reporting
+async function importContactsCSV(userId, csvText) {
+  const uId = String(userId);
+  const parsedRows = parseCSV(csvText);
+
+  if (parsedRows.length === 0) {
+    throw httpError(400, "No valid data rows found in CSV.");
+  }
+
+  const errors = [];
+  const contactsToInsert = [];
+
+  // Pre-load existing active emails and phones to prevent duplicates
+  const existingContacts = await Contact.find(
+    { userId: uId, isDeleted: false },
+    { email: 1, phone: 1 }
+  );
+  const existingEmails = new Set(
+    existingContacts.map((c) => (c.email || "").toLowerCase()).filter(Boolean)
+  );
+  const existingPhones = new Set(
+    existingContacts.map((c) => (c.phone || "").trim()).filter(Boolean)
+  );
+
+  for (const { rowNumber, data } of parsedRows) {
+    const firstName = data.firstname || data["first name"] || data.first_name || "";
+    const lastName = data.lastname || data["last name"] || data.last_name || "";
+    const email = (data.email || "").trim().toLowerCase();
+    const phone = (data.phone || "").trim();
+    const company = data.company || "";
+    const designation = data.designation || data.role || "";
+    const rawTags = data.tags || data.tag || "";
+    const tags = rawTags
+      ? rawTags.split(/[;,]/).map((t) => t.trim()).filter(Boolean)
+      : ["Imported"];
+    const notes = data.notes || data.note || "Imported via CSV";
+
+    if (!firstName.trim()) {
+      errors.push({ row: rowNumber, error: "First name is required." });
+      continue;
+    }
+
+    if (email && existingEmails.has(email)) {
+      errors.push({ row: rowNumber, error: `Email "${email}" is already used by an existing contact.` });
+      continue;
+    }
+
+    if (phone && existingPhones.has(phone)) {
+      errors.push({ row: rowNumber, error: `Phone "${phone}" is already used by an existing contact.` });
+      continue;
+    }
+
+    if (email) existingEmails.add(email);
+    if (phone) existingPhones.add(phone);
+
+    contactsToInsert.push({
+      userId: uId,
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email,
+      phone,
+      company: company.trim(),
+      designation: designation.trim(),
+      tags,
+      notes: notes.trim(),
+      isDeleted: false,
+      deletedAt: null,
+      isFavorite: false,
+      followUpDate: null,
+    });
+  }
+
+  let importedCount = 0;
+  if (contactsToInsert.length > 0) {
+    const inserted = await Contact.insertMany(contactsToInsert);
+    importedCount = inserted.length;
+  }
+
+  return {
+    totalRows: parsedRows.length,
+    importedCount,
+    failedCount: errors.length,
+    errors,
+  };
+}
+
+// Only the admin can reset to default demo contacts.
+async function resetDemoContacts(userId, isAdmin) {
   if (!isAdmin) {
     throw httpError(403, "Only the demo admin can restore sample contacts.");
   }
-  const samples = sampleContacts();
-  saveMyList(userId, samples);
-  return samples;
+  const uId = String(userId);
+
+  // Clear existing records for this user
+  await Contact.deleteMany({ userId: uId });
+  await ContactList.deleteMany({ userId: uId });
+  await FollowUp.deleteMany({ userId: uId });
+  await Interaction.deleteMany({ userId: uId });
+
+  const rawContacts = sampleContacts();
+  const contactsWithUser = rawContacts.map((c) => ({
+    ...c,
+    _id: c.id,
+    userId: uId,
+  }));
+  const savedContacts = await Contact.insertMany(contactsWithUser);
+
+  const rawLists = sampleLists(savedContacts, uId);
+  if (rawLists.length > 0) {
+    await ContactList.insertMany(
+      rawLists.map((l) => ({ ...l, _id: l.id, userId: uId }))
+    );
+  }
+
+  const rawFollowUps = sampleFollowUps(savedContacts, uId);
+  if (rawFollowUps.length > 0) {
+    await FollowUp.insertMany(
+      rawFollowUps.map((f) => ({ ...f, _id: f.id, userId: uId }))
+    );
+  }
+
+  const rawInteractions = sampleInteractions(savedContacts, uId);
+  if (rawInteractions.length > 0) {
+    await Interaction.insertMany(
+      rawInteractions.map((i) => ({ ...i, _id: i.id, userId: uId }))
+    );
+  }
+
+  return savedContacts.map(formatDoc);
 }
 
 module.exports = {
   listContacts,
+  getContactById,
   createContact,
   updateContact,
   softDeleteContact,
@@ -233,4 +435,6 @@ module.exports = {
   toggleFavorite,
   permanentDeleteContact,
   resetDemoContacts,
+  exportContactsCSV,
+  importContactsCSV,
 };

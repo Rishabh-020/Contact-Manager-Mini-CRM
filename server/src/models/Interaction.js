@@ -2,13 +2,26 @@ const mongoose = require('mongoose');
 
 const interactionSchema = new mongoose.Schema(
   {
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    contactId: { type: mongoose.Schema.Types.ObjectId, ref: 'Contact', required: true },
-    type: { type: String, enum: ['call', 'email', 'meeting'], required: true },
-    note: String,
+    _id: { type: String, default: () => new mongoose.Types.ObjectId().toString() },
+    userId: { type: String, required: true, index: true },
+    contactId: { type: String, required: true, index: true },
+    type: { type: String, enum: ['call', 'email', 'meeting', 'note'], required: true },
+    title: { type: String, trim: true, default: '' },
+    note: { type: String, required: true, trim: true },
     date: { type: Date, default: Date.now },
   },
-  { timestamps: { createdAt: true, updatedAt: false } }
+  { timestamps: true }
 );
 
-module.exports = mongoose.model('Interaction', interactionSchema);
+interactionSchema.index({ userId: 1, contactId: 1, date: -1 });
+
+interactionSchema.set('toJSON', {
+  virtuals: true,
+  transform: (doc, ret) => {
+    ret.id = ret._id;
+    delete ret.__v;
+    return ret;
+  },
+});
+
+module.exports = mongoose.models.Interaction || mongoose.model('Interaction', interactionSchema);

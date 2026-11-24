@@ -14,10 +14,10 @@ import {
   CheckCircle,
   AlertCircle,
   Info,
-  Layers,
   Settings as SettingsIcon,
   RefreshCw,
   FolderOpen,
+  FileSpreadsheet,
   Home,
   HelpCircle
 } from 'lucide-react';
@@ -79,6 +79,12 @@ export default function MainLayout() {
       to: '/lists',
       label: 'Lists & Segments',
       icon: FolderOpen,
+      badge: null,
+    },
+    {
+      to: '/import',
+      label: 'Import CSV',
+      icon: FileSpreadsheet,
       badge: null,
     },
     {
@@ -301,10 +307,10 @@ export default function MainLayout() {
               <div className="bg-slate-50 rounded-xl p-3 border border-slate-200/60">
                 <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 mb-1">
                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                  <span>Local Storage CRM</span>
+                  <span>Full-Stack Mini CRM</span>
                 </div>
                 <p className="text-[11px] text-slate-500 leading-relaxed">
-                  Data persists locally in browser storage. Fast & private offline demo.
+                  Real-time REST API sync with persistent data storage and instant activity logging.
                 </p>
               </div>
             </div>
@@ -443,4 +449,3 @@ export default function MainLayout() {
     </div>
   );
 }
-

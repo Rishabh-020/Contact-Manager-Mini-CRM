@@ -18,6 +18,11 @@ export async function getAllContacts() {
   return all;
 }
 
+export async function getContact(id) {
+  const { data } = await request(`/contacts/${id}`);
+  return data.contact;
+}
+
 export async function createContact(contact) {
   const { data } = await request("/contacts", {
     method: "POST",

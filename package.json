@@ -1,0 +1,15 @@
+{
+  "name": "crm-mini-fullstack",
+  "version": "1.0.0",
+  "description": "Full-stack Mini CRM with Contact Dossiers, Agenda Tasks, Custom Segments, and Activity Timeline",
+  "private": true,
+  "scripts": {
+    "start": "npm --prefix server start",
+    "dev": "npm --prefix client dev",
+    "server": "npm --prefix server run dev",
+    "client": "npm --prefix client dev",
+    "build": "npm --prefix client run build",
+    "test": "node server/test_suite.js"
+  }
+}
+

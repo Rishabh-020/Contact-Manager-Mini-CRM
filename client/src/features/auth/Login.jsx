@@ -10,7 +10,7 @@ import {
   AlertCircle,
   ArrowLeft,
 } from "lucide-react";
-import { useAuth } from "../auth/AuthContext.jsx";
+import { useAuth } from "../../auth/AuthContext.jsx";
 
 const DEMO_EMAIL = "admin@minicrm.college";
 const DEMO_PASSWORD = "password123";
