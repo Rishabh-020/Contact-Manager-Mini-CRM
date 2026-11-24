@@ -14,6 +14,8 @@ router.use(requireLogin);
 
 // Contacts List & Export (must come before /:id)
 router.get("/", validateContactQueryMiddleware, contact.list);
+// Create a contact: POST /api/contacts
+router.post("/", validateCreateContact, contact.create);
 router.get("/export", contact.exportCSV);
 router.post(
   "/import",

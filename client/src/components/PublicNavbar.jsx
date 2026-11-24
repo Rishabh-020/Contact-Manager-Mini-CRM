@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import {
   Sparkles,
   Menu,
@@ -10,8 +10,8 @@ import {
   Home,
   Info,
   Mail,
-} from 'lucide-react';
-import { useAuth } from '../auth/AuthContext.jsx';
+} from "lucide-react";
+import { useAuth } from "../auth/AuthContext.jsx";
 
 export default function PublicNavbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -20,14 +20,14 @@ export default function PublicNavbar() {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate("/");
     setMobileMenuOpen(false);
   };
 
   const navLinks = [
-    { to: '/', label: 'Home', icon: Home, end: true },
-    { to: '/about', label: 'About Us', icon: Info },
-    { to: '/contact', label: 'Contact Us', icon: Mail },
+    { to: "/", label: "Home", icon: Home, end: true },
+    { to: "/about", label: "About Us", icon: Info },
+    { to: "/contact", label: "Contact Us", icon: Mail },
   ];
 
   return (
@@ -61,8 +61,8 @@ export default function PublicNavbar() {
                   className={({ isActive }) =>
                     `flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium transition-all ${
                       isActive
-                        ? 'bg-blue-50 text-blue-700 font-semibold'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                        ? "bg-blue-50 text-blue-700 font-semibold"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
                     }`
                   }
                 >
@@ -79,8 +79,8 @@ export default function PublicNavbar() {
                 className={({ isActive }) =>
                   `flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium transition-all ${
                     isActive
-                      ? 'bg-blue-50 text-blue-700 font-semibold'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                      ? "bg-blue-50 text-blue-700 font-semibold"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100/70"
                   }`
                 }
               >
@@ -96,7 +96,7 @@ export default function PublicNavbar() {
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 pl-3 py-1 pr-2 bg-slate-100/80 rounded-full border border-slate-200/60">
                   <span className="w-7 h-7 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
-                    {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                    {user.name ? user.name.charAt(0).toUpperCase() : "U"}
                   </span>
                   <span className="text-xs font-semibold text-slate-700 max-w-[120px] truncate">
                     {user.name || user.email}
@@ -161,7 +161,11 @@ export default function PublicNavbar() {
               className="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-hidden"
               aria-label="Toggle navigation"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
             </button>
           </div>
         </div>
@@ -182,8 +186,8 @@ export default function PublicNavbar() {
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium ${
                       isActive
-                        ? 'bg-blue-50 text-blue-700 font-semibold'
-                        : 'text-slate-700 hover:bg-slate-50'
+                        ? "bg-blue-50 text-blue-700 font-semibold"
+                        : "text-slate-700 hover:bg-slate-50"
                     }`
                   }
                 >
@@ -210,13 +214,15 @@ export default function PublicNavbar() {
               <div className="space-y-2">
                 <div className="flex items-center gap-2.5 px-3 py-2 bg-slate-50 rounded-xl border border-slate-100">
                   <span className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center">
-                    {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                    {user.name ? user.name.charAt(0).toUpperCase() : "U"}
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-slate-800 truncate">
-                      {user.name || 'User'}
+                      {user.name || "User"}
                     </p>
-                    <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                    <p className="text-xs text-slate-500 truncate">
+                      {user.email}
+                    </p>
                   </div>
                 </div>
 
