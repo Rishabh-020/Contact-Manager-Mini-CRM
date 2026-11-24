@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft,
   Mail,
@@ -23,27 +23,26 @@ import {
   CalendarPlus,
   X,
   History,
-  Check
-} from 'lucide-react';
-import { useContacts } from '../../App.jsx';
-import * as contactApi from '../../api/contactApi.js';
-import * as interactionApi from '../../api/interactionApi.js';
-import * as listApi from '../../api/listApi.js';
-import * as followUpApi from '../../api/followUpApi.js';
+  Check,
+} from "lucide-react";
+import { useContacts } from "../../App.jsx";
+import * as contactApi from "../../api/contactApi.js";
+import * as interactionApi from "../../api/interactionApi.js";
+import * as listApi from "../../api/listApi.js";
+import * as followUpApi from "../../api/followUpApi.js";
+
+import { createPortal } from "react-dom";
 
 export default function ContactDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const {
-    contacts,
-    deleteContact,
-    toggleFavorite,
-    showToast,
-    loadContacts
-  } = useContacts();
+  const { contacts, deleteContact, toggleFavorite, showToast, loadContacts } =
+    useContacts();
 
-  const [contact, setContact] = useState(() => contacts.find((c) => c.id === id) || null);
+  const [contact, setContact] = useState(
+    () => contacts.find((c) => c.id === id) || null,
+  );
   const [loadingContact, setLoadingContact] = useState(!contact);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [copiedField, setCopiedField] = useState(null);
@@ -53,9 +52,9 @@ export default function ContactDetails() {
   const [loadingInteractions, setLoadingInteractions] = useState(true);
   const [showAddInteractionModal, setShowAddInteractionModal] = useState(false);
   const [interactionForm, setInteractionForm] = useState({
-    type: 'call',
-    title: '',
-    note: '',
+    type: "call",
+    title: "",
+    note: "",
     date: new Date().toISOString().slice(0, 16),
   });
 
@@ -69,9 +68,9 @@ export default function ContactDetails() {
   const [loadingFollowUps, setLoadingFollowUps] = useState(true);
   const [showAddFollowUpModal, setShowAddFollowUpModal] = useState(false);
   const [followUpForm, setFollowUpForm] = useState({
-    description: '',
-    dueDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-    priority: 'medium',
+    description: "",
+    dueDate: new Date(Date.now() + 86400000).toISOString().split("T")[0],
+    priority: "medium",
   });
 
   // Sync / Fetch Contact
@@ -97,12 +96,13 @@ export default function ContactDetails() {
       setLoadingInteractions(true);
       setLoadingFollowUps(true);
 
-      const [interRes, allListsRes, contactListsRes, followUpsRes] = await Promise.all([
-        interactionApi.getContactInteractions(id).catch(() => []),
-        listApi.getAllLists().catch(() => []),
-        listApi.getListsForContact(id).catch(() => []),
-        followUpApi.getAllFollowUps({ contactId: id }).catch(() => []),
-      ]);
+      const [interRes, allListsRes, contactListsRes, followUpsRes] =
+        await Promise.all([
+          interactionApi.getContactInteractions(id).catch(() => []),
+          listApi.getAllLists().catch(() => []),
+          listApi.getListsForContact(id).catch(() => []),
+          followUpApi.getAllFollowUps({ contactId: id }).catch(() => []),
+        ]);
 
       setInteractions(interRes);
       setAllLists(allListsRes);
@@ -134,9 +134,12 @@ export default function ContactDetails() {
         <div className="w-14 h-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
           <User className="w-7 h-7" />
         </div>
-        <h2 className="text-lg font-bold text-slate-900 mb-1">Contact Not Found</h2>
+        <h2 className="text-lg font-bold text-slate-900 mb-1">
+          Contact Not Found
+        </h2>
         <p className="text-xs text-slate-500 mb-6 leading-relaxed">
-          The requested contact record does not exist or has been permanently removed.
+          The requested contact record does not exist or has been permanently
+          removed.
         </p>
         <Link
           to="/contacts"
@@ -152,26 +155,28 @@ export default function ContactDetails() {
   const handleDelete = () => {
     deleteContact(contact.id);
     setShowDeleteModal(false);
-    navigate('/contacts');
+    navigate("/contacts");
   };
 
   const copyToClipboard = (text, fieldName) => {
     if (!text) return;
     navigator.clipboard.writeText(text);
     setCopiedField(fieldName);
-    showToast(`Copied ${fieldName} to clipboard!`, 'info');
+    showToast(`Copied ${fieldName} to clipboard!`, "info");
     setTimeout(() => setCopiedField(null), 2000);
   };
 
   const getInitials = (first, last) => {
-    return `${(first || '').charAt(0)}${(last || '').charAt(0)}`.toUpperCase() || 'C';
+    return (
+      `${(first || "").charAt(0)}${(last || "").charAt(0)}`.toUpperCase() || "C"
+    );
   };
 
   // Interaction handlers
   const handleCreateInteraction = async (e) => {
     e.preventDefault();
     if (!interactionForm.note.trim()) {
-      showToast('Please enter interaction notes.', 'warning');
+      showToast("Please enter interaction notes.", "warning");
       return;
     }
     try {
@@ -179,28 +184,28 @@ export default function ContactDetails() {
         contactId: contact.id,
         ...interactionForm,
       });
-      showToast('Activity logged successfully!');
+      showToast("Activity logged successfully!");
       setShowAddInteractionModal(false);
       setInteractionForm({
-        type: 'call',
-        title: '',
-        note: '',
+        type: "call",
+        title: "",
+        note: "",
         date: new Date().toISOString().slice(0, 16),
       });
       const updated = await interactionApi.getContactInteractions(contact.id);
       setInteractions(updated);
     } catch (err) {
-      showToast(err.message, 'warning');
+      showToast(err.message, "warning");
     }
   };
 
   const handleDeleteInteraction = async (interId) => {
     try {
       await interactionApi.deleteInteraction(interId);
-      showToast('Activity deleted.', 'info');
+      showToast("Activity deleted.", "info");
       setInteractions((prev) => prev.filter((i) => i.id !== interId));
     } catch (err) {
-      showToast(err.message, 'warning');
+      showToast(err.message, "warning");
     }
   };
 
@@ -208,7 +213,7 @@ export default function ContactDetails() {
   const handleCreateFollowUp = async (e) => {
     e.preventDefault();
     if (!followUpForm.description.trim() || !followUpForm.dueDate) {
-      showToast('Please fill in both description and due date.', 'warning');
+      showToast("Please fill in both description and due date.", "warning");
       return;
     }
     try {
@@ -216,44 +221,44 @@ export default function ContactDetails() {
         contactId: contact.id,
         ...followUpForm,
       });
-      showToast('Follow-up scheduled successfully!');
+      showToast("Follow-up scheduled successfully!");
       setShowAddFollowUpModal(false);
       setFollowUpForm({
-        description: '',
-        dueDate: new Date(Date.now() + 86400000).toISOString().split('T')[0],
-        priority: 'medium',
+        description: "",
+        dueDate: new Date(Date.now() + 86400000).toISOString().split("T")[0],
+        priority: "medium",
       });
-      const updated = await followUpApi.getAllFollowUps({ contactId: contact.id });
+      const updated = await followUpApi.getAllFollowUps({
+        contactId: contact.id,
+      });
       setFollowUps(updated);
       loadContacts();
     } catch (err) {
-      showToast(err.message, 'warning');
+      showToast(err.message, "warning");
     }
   };
 
   const handleToggleFollowUp = async (fId) => {
     try {
       const updatedItem = await followUpApi.toggleFollowUpStatus(fId);
-      setFollowUps((prev) =>
-        prev.map((f) => (f.id === fId ? updatedItem : f))
-      );
+      setFollowUps((prev) => prev.map((f) => (f.id === fId ? updatedItem : f)));
       showToast(
-        updatedItem.status === 'completed'
-          ? 'Task marked as completed!'
-          : 'Task reopened.'
+        updatedItem.status === "completed"
+          ? "Task marked as completed!"
+          : "Task reopened.",
       );
     } catch (err) {
-      showToast(err.message, 'warning');
+      showToast(err.message, "warning");
     }
   };
 
   const handleDeleteFollowUp = async (fId) => {
     try {
       await followUpApi.deleteFollowUp(fId);
-      showToast('Follow-up task deleted.', 'info');
+      showToast("Follow-up task deleted.", "info");
       setFollowUps((prev) => prev.filter((f) => f.id !== fId));
     } catch (err) {
-      showToast(err.message, 'warning');
+      showToast(err.message, "warning");
     }
   };
 
@@ -263,29 +268,32 @@ export default function ContactDetails() {
       if (isCurrentlyMember) {
         await listApi.removeContactFromList(listId, contact.id);
         setContactLists((prev) => prev.filter((l) => l.id !== listId));
-        showToast('Removed from list.', 'info');
+        showToast("Removed from list.", "info");
       } else {
         await listApi.addContactsToList(listId, [contact.id]);
         const matched = allLists.find((l) => l.id === listId);
         if (matched) {
-          setContactLists((prev) => [...prev, { id: matched.id, name: matched.name, color: matched.color }]);
+          setContactLists((prev) => [
+            ...prev,
+            { id: matched.id, name: matched.name, color: matched.color },
+          ]);
         }
-        showToast('Added to list!');
+        showToast("Added to list!");
       }
       const updatedAll = await listApi.getAllLists();
       setAllLists(updatedAll);
     } catch (err) {
-      showToast(err.message, 'warning');
+      showToast(err.message, "warning");
     }
   };
 
   const getInteractionIcon = (type) => {
     switch (type) {
-      case 'call':
+      case "call":
         return <Phone className="w-4 h-4 text-emerald-600" />;
-      case 'email':
+      case "email":
         return <Mail className="w-4 h-4 text-blue-600" />;
-      case 'meeting':
+      case "meeting":
         return <Users className="w-4 h-4 text-purple-600" />;
       default:
         return <FileText className="w-4 h-4 text-amber-600" />;
@@ -294,29 +302,29 @@ export default function ContactDetails() {
 
   const getInteractionBadge = (type) => {
     switch (type) {
-      case 'call':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      case 'email':
-        return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'meeting':
-        return 'bg-purple-50 text-purple-700 border-purple-200';
+      case "call":
+        return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      case "email":
+        return "bg-blue-50 text-blue-700 border-blue-200";
+      case "meeting":
+        return "bg-purple-50 text-purple-700 border-purple-200";
       default:
-        return 'bg-amber-50 text-amber-700 border-amber-200';
+        return "bg-amber-50 text-amber-700 border-amber-200";
     }
   };
 
   const getListColorBadge = (color) => {
     switch (color) {
-      case 'purple':
-        return 'bg-purple-50 text-purple-700 border-purple-200';
-      case 'emerald':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      case 'amber':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
-      case 'rose':
-        return 'bg-rose-50 text-rose-700 border-rose-200';
+      case "purple":
+        return "bg-purple-50 text-purple-700 border-purple-200";
+      case "emerald":
+        return "bg-emerald-50 text-emerald-700 border-emerald-200";
+      case "amber":
+        return "bg-amber-50 text-amber-700 border-amber-200";
+      case "rose":
+        return "bg-rose-50 text-rose-700 border-rose-200";
       default:
-        return 'bg-blue-50 text-blue-700 border-blue-200';
+        return "bg-blue-50 text-blue-700 border-blue-200";
     }
   };
 
@@ -336,13 +344,20 @@ export default function ContactDetails() {
           <button
             type="button"
             onClick={() => toggleFavorite(contact.id)}
-            className={`p-2 rounded-xl border transition-colors cursor-pointer ${contact.isFavorite
-                ? 'bg-amber-50 text-amber-500 border-amber-200 hover:bg-amber-100'
-                : 'bg-white text-slate-400 border-slate-200/80 hover:text-slate-600 hover:bg-slate-50'
-              }`}
-            title={contact.isFavorite ? 'Remove from favourites' : 'Mark as favourite'}
+            className={`p-2 rounded-xl border transition-colors cursor-pointer ${
+              contact.isFavorite
+                ? "bg-amber-50 text-amber-500 border-amber-200 hover:bg-amber-100"
+                : "bg-white text-slate-400 border-slate-200/80 hover:text-slate-600 hover:bg-slate-50"
+            }`}
+            title={
+              contact.isFavorite
+                ? "Remove from favourites"
+                : "Mark as favourite"
+            }
           >
-            <Star className={`w-4 h-4 ${contact.isFavorite ? 'fill-current' : ''}`} />
+            <Star
+              className={`w-4 h-4 ${contact.isFavorite ? "fill-current" : ""}`}
+            />
           </button>
 
           <Link
@@ -375,7 +390,7 @@ export default function ContactDetails() {
             <div>
               <div className="flex items-center gap-2.5">
                 <h1 className="text-2xl sm:text-3xl font-display font-bold text-slate-900 tracking-tight">
-                  {contact.firstName} {contact.lastName || ''}
+                  {contact.firstName} {contact.lastName || ""}
                 </h1>
                 {contact.isFavorite && (
                   <Star className="w-5 h-5 text-amber-400 fill-current" />
@@ -497,7 +512,7 @@ export default function ContactDetails() {
                   {contact.email && (
                     <button
                       type="button"
-                      onClick={() => copyToClipboard(contact.email, 'Email')}
+                      onClick={() => copyToClipboard(contact.email, "Email")}
                       className="text-slate-400 hover:text-slate-600 cursor-pointer"
                       title="Copy email"
                     >
@@ -513,7 +528,9 @@ export default function ContactDetails() {
                     {contact.email}
                   </a>
                 ) : (
-                  <span className="text-xs text-slate-400 italic">Not specified</span>
+                  <span className="text-xs text-slate-400 italic">
+                    Not specified
+                  </span>
                 )}
               </div>
 
@@ -526,7 +543,7 @@ export default function ContactDetails() {
                   {contact.phone && (
                     <button
                       type="button"
-                      onClick={() => copyToClipboard(contact.phone, 'Phone')}
+                      onClick={() => copyToClipboard(contact.phone, "Phone")}
                       className="text-slate-400 hover:text-slate-600 cursor-pointer"
                       title="Copy phone"
                     >
@@ -542,7 +559,9 @@ export default function ContactDetails() {
                     {contact.phone}
                   </a>
                 ) : (
-                  <span className="text-xs text-slate-400 italic">Not specified</span>
+                  <span className="text-xs text-slate-400 italic">
+                    Not specified
+                  </span>
                 )}
               </div>
 
@@ -552,7 +571,7 @@ export default function ContactDetails() {
                   <Building2 className="w-3.5 h-3.5" /> Organization
                 </span>
                 <span className="text-sm font-semibold text-slate-800 block">
-                  {contact.company || 'Individual / None'}
+                  {contact.company || "Individual / None"}
                 </span>
               </div>
 
@@ -562,7 +581,7 @@ export default function ContactDetails() {
                   <Briefcase className="w-3.5 h-3.5" /> Role / Title
                 </span>
                 <span className="text-sm font-semibold text-slate-800 block">
-                  {contact.designation || 'None specified'}
+                  {contact.designation || "None specified"}
                 </span>
               </div>
             </div>
@@ -610,13 +629,18 @@ export default function ContactDetails() {
             </div>
 
             {loadingInteractions ? (
-              <p className="text-xs text-slate-400 py-4 text-center">Loading timeline...</p>
+              <p className="text-xs text-slate-400 py-4 text-center">
+                Loading timeline...
+              </p>
             ) : interactions.length === 0 ? (
               <div className="text-center py-8 px-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">
                 <MessageSquare className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                <p className="text-xs font-medium text-slate-600">No activities logged yet.</p>
+                <p className="text-xs font-medium text-slate-600">
+                  No activities logged yet.
+                </p>
                 <p className="text-[11px] text-slate-400 mt-1">
-                  Keep a complete CRM record by logging calls, meetings, emails, and notes.
+                  Keep a complete CRM record by logging calls, meetings, emails,
+                  and notes.
                 </p>
                 <button
                   type="button"
@@ -629,7 +653,10 @@ export default function ContactDetails() {
             ) : (
               <div className="space-y-3 relative before:absolute before:inset-0 before:left-4 before:w-0.5 before:bg-slate-200">
                 {interactions.map((item) => (
-                  <div key={item.id} className="relative flex items-start gap-3 pl-2 group">
+                  <div
+                    key={item.id}
+                    className="relative flex items-start gap-3 pl-2 group"
+                  >
                     <div className="w-6 h-6 rounded-full bg-white border-2 border-indigo-400 flex items-center justify-center shrink-0 z-10 shadow-xs">
                       {getInteractionIcon(item.type)}
                     </div>
@@ -638,7 +665,7 @@ export default function ContactDetails() {
                         <div className="flex items-center gap-2">
                           <span
                             className={`text-[11px] font-semibold uppercase px-2 py-0.5 rounded-md border ${getInteractionBadge(
-                              item.type
+                              item.type,
                             )}`}
                           >
                             {item.type}
@@ -649,11 +676,13 @@ export default function ContactDetails() {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-[11px] text-slate-400 font-mono">
-                            {new Date(item.date || item.createdAt).toLocaleString(undefined, {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
+                            {new Date(
+                              item.date || item.createdAt,
+                            ).toLocaleString(undefined, {
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
                             })}
                           </span>
                           <button
@@ -698,7 +727,9 @@ export default function ContactDetails() {
             </div>
 
             {loadingFollowUps ? (
-              <p className="text-xs text-slate-400 py-3 text-center">Loading tasks...</p>
+              <p className="text-xs text-slate-400 py-3 text-center">
+                Loading tasks...
+              </p>
             ) : followUps.length === 0 ? (
               <div className="text-center py-6 px-3 bg-slate-50 rounded-xl border border-slate-200/60 text-slate-400 text-xs">
                 <p>No follow-up tasks scheduled.</p>
@@ -715,32 +746,41 @@ export default function ContactDetails() {
                 {followUps.map((task) => (
                   <div
                     key={task.id}
-                    className={`p-3 rounded-xl border transition-all ${task.status === 'completed'
-                        ? 'bg-slate-50/70 border-slate-200/60 opacity-60'
-                        : task.timeCategory === 'overdue'
-                          ? 'bg-rose-50/40 border-rose-200'
-                          : 'bg-white border-slate-200/80 hover:border-blue-200'
-                      }`}
+                    className={`p-3 rounded-xl border transition-all ${
+                      task.status === "completed"
+                        ? "bg-slate-50/70 border-slate-200/60 opacity-60"
+                        : task.timeCategory === "overdue"
+                          ? "bg-rose-50/40 border-rose-200"
+                          : "bg-white border-slate-200/80 hover:border-blue-200"
+                    }`}
                   >
                     <div className="flex items-start gap-2.5">
                       <button
                         type="button"
                         onClick={() => handleToggleFollowUp(task.id)}
-                        className={`mt-0.5 w-4 h-4 rounded-md border flex items-center justify-center transition-colors cursor-pointer ${task.status === 'completed'
-                            ? 'bg-emerald-600 border-emerald-600 text-white'
-                            : 'border-slate-300 hover:border-blue-500 bg-white'
-                          }`}
-                        title={task.status === 'completed' ? 'Reopen task' : 'Mark completed'}
+                        className={`mt-0.5 w-4 h-4 rounded-md border flex items-center justify-center transition-colors cursor-pointer ${
+                          task.status === "completed"
+                            ? "bg-emerald-600 border-emerald-600 text-white"
+                            : "border-slate-300 hover:border-blue-500 bg-white"
+                        }`}
+                        title={
+                          task.status === "completed"
+                            ? "Reopen task"
+                            : "Mark completed"
+                        }
                       >
-                        {task.status === 'completed' && <Check className="w-3 h-3 stroke-[3]" />}
+                        {task.status === "completed" && (
+                          <Check className="w-3 h-3 stroke-[3]" />
+                        )}
                       </button>
 
                       <div className="flex-1 min-w-0">
                         <p
-                          className={`text-xs font-medium leading-snug ${task.status === 'completed'
-                              ? 'line-through text-slate-400'
-                              : 'text-slate-800'
-                            }`}
+                          className={`text-xs font-medium leading-snug ${
+                            task.status === "completed"
+                              ? "line-through text-slate-400"
+                              : "text-slate-800"
+                          }`}
                         >
                           {task.description}
                         </p>
@@ -752,12 +792,13 @@ export default function ContactDetails() {
                           </span>
 
                           <span
-                            className={`px-1.5 py-0.2 rounded text-[10px] font-semibold uppercase ${task.priority === 'high'
-                                ? 'bg-rose-100 text-rose-700'
-                                : task.priority === 'medium'
-                                  ? 'bg-amber-100 text-amber-700'
-                                  : 'bg-slate-100 text-slate-600'
-                              }`}
+                            className={`px-1.5 py-0.2 rounded text-[10px] font-semibold uppercase ${
+                              task.priority === "high"
+                                ? "bg-rose-100 text-rose-700"
+                                : task.priority === "medium"
+                                  ? "bg-amber-100 text-amber-700"
+                                  : "bg-slate-100 text-slate-600"
+                            }`}
                           >
                             {task.priority}
                           </span>
@@ -795,12 +836,15 @@ export default function ContactDetails() {
                 <span className="text-slate-400">Created:</span>
                 <span>
                   {contact.createdAt
-                    ? new Date(contact.createdAt).toLocaleDateString(undefined, {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    })
-                    : 'Initial seed'}
+                    ? new Date(contact.createdAt).toLocaleDateString(
+                        undefined,
+                        {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        },
+                      )
+                    : "Initial seed"}
                 </span>
               </div>
               {contact.updatedAt && (
@@ -808,9 +852,9 @@ export default function ContactDetails() {
                   <span className="text-slate-400">Last Modified:</span>
                   <span>
                     {new Date(contact.updatedAt).toLocaleDateString(undefined, {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
                     })}
                   </span>
                 </div>
@@ -821,322 +865,367 @@ export default function ContactDetails() {
       </div>
 
       {/* MODAL: Log Activity */}
-      {showAddInteractionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <MessageSquare className="w-4 h-4 text-blue-600" />
-                <span>Log Contact Activity</span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowAddInteractionModal(false)}
-                className="text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateInteraction} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Interaction Type
-                </label>
-                <div className="grid grid-cols-4 gap-2">
-                  {[
-                    { type: 'call', label: 'Call', icon: Phone },
-                    { type: 'email', label: 'Email', icon: Mail },
-                    { type: 'meeting', label: 'Meeting', icon: Users },
-                    { type: 'note', label: 'Note', icon: FileText },
-                  ].map((btn) => (
-                    <button
-                      key={btn.type}
-                      type="button"
-                      onClick={() => setInteractionForm({ ...interactionForm, type: btn.type })}
-                      className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-xs font-medium transition-colors cursor-pointer ${interactionForm.type === btn.type
-                          ? 'bg-blue-50 border-blue-600 text-blue-700'
-                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
-                        }`}
-                    >
-                      <btn.icon className="w-4 h-4" />
-                      <span>{btn.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Subject / Summary
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Discussed proposal pricing"
-                  value={interactionForm.title}
-                  onChange={(e) => setInteractionForm({ ...interactionForm, title: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-blue-500 outline-hidden"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Date & Time
-                </label>
-                <input
-                  type="datetime-local"
-                  value={interactionForm.date}
-                  onChange={(e) => setInteractionForm({ ...interactionForm, date: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-blue-500 outline-hidden"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Notes & Details *
-                </label>
-                <textarea
-                  rows="3"
-                  required
-                  placeholder="What was discussed or decided?"
-                  value={interactionForm.note}
-                  onChange={(e) => setInteractionForm({ ...interactionForm, note: e.target.value })}
-                  className="w-full p-3 text-xs rounded-xl border border-slate-200 focus:border-blue-500 outline-hidden"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-2">
+      {showAddInteractionModal &&
+        createPortal(
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-blue-600" />
+                  <span>Log Contact Activity</span>
+                </h3>
                 <button
                   type="button"
                   onClick={() => setShowAddInteractionModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+                  className="text-slate-400 hover:text-slate-600 cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs cursor-pointer"
-                >
-                  Save Activity
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: Schedule Follow-Up */}
-      {showAddFollowUpModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <CalendarPlus className="w-4 h-4 text-amber-500" />
-                <span>Schedule Follow-Up Task</span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowAddFollowUpModal(false)}
-                className="text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateFollowUp} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Task Description *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Send updated pricing deck and agreement draft"
-                  value={followUpForm.description}
-                  onChange={(e) => setFollowUpForm({ ...followUpForm, description: e.target.value })}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-blue-500 outline-hidden"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
+              <form onSubmit={handleCreateInteraction} className="space-y-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Due Date *
+                    Interaction Type
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { type: "call", label: "Call", icon: Phone },
+                      { type: "email", label: "Email", icon: Mail },
+                      { type: "meeting", label: "Meeting", icon: Users },
+                      { type: "note", label: "Note", icon: FileText },
+                    ].map((btn) => (
+                      <button
+                        key={btn.type}
+                        type="button"
+                        onClick={() =>
+                          setInteractionForm({
+                            ...interactionForm,
+                            type: btn.type,
+                          })
+                        }
+                        className={`flex flex-col items-center gap-1 p-2 rounded-xl border text-xs font-medium transition-colors cursor-pointer ${
+                          interactionForm.type === btn.type
+                            ? "bg-blue-50 border-blue-600 text-blue-700"
+                            : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                        }`}
+                      >
+                        <btn.icon className="w-4 h-4" />
+                        <span>{btn.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Subject / Summary
                   </label>
                   <input
-                    type="date"
-                    required
-                    value={followUpForm.dueDate}
-                    onChange={(e) => setFollowUpForm({ ...followUpForm, dueDate: e.target.value })}
+                    type="text"
+                    placeholder="e.g. Discussed proposal pricing"
+                    value={interactionForm.title}
+                    onChange={(e) =>
+                      setInteractionForm({
+                        ...interactionForm,
+                        title: e.target.value,
+                      })
+                    }
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-blue-500 outline-hidden"
                   />
                 </div>
-
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Priority
+                    Date &amp; Time
                   </label>
-                  <select
-                    value={followUpForm.priority}
-                    onChange={(e) => setFollowUpForm({ ...followUpForm, priority: e.target.value })}
-                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-blue-500 outline-hidden bg-white"
-                  >
-                    <option value="low">Low Priority</option>
-                    <option value="medium">Medium Priority</option>
-                    <option value="high">High Priority</option>
-                  </select>
+                  <input
+                    type="datetime-local"
+                    value={interactionForm.date}
+                    onChange={(e) =>
+                      setInteractionForm({
+                        ...interactionForm,
+                        date: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-blue-500 outline-hidden"
+                  />
                 </div>
-              </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Notes &amp; Details *
+                  </label>
+                  <textarea
+                    rows="3"
+                    required
+                    placeholder="What was discussed or decided?"
+                    value={interactionForm.note}
+                    onChange={(e) =>
+                      setInteractionForm({
+                        ...interactionForm,
+                        note: e.target.value,
+                      })
+                    }
+                    className="w-full p-3 text-xs rounded-xl border border-slate-200 focus:border-blue-500 outline-hidden"
+                  />
+                </div>
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddInteractionModal(false)}
+                    className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs cursor-pointer"
+                  >
+                    Save Activity
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body,
+        )}
 
-              <div className="flex items-center justify-end gap-3 pt-2">
+      {/* MODAL: Schedule Follow-Up */}
+      {showAddFollowUpModal &&
+        createPortal(
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <CalendarPlus className="w-4 h-4 text-amber-500" />
+                  <span>Schedule Follow-Up Task</span>
+                </h3>
                 <button
                   type="button"
                   onClick={() => setShowAddFollowUpModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+                  className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <form onSubmit={handleCreateFollowUp} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Task Description *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Send updated pricing deck and agreement draft"
+                    value={followUpForm.description}
+                    onChange={(e) =>
+                      setFollowUpForm({
+                        ...followUpForm,
+                        description: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-blue-500 outline-hidden"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Due Date *
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={followUpForm.dueDate}
+                      onChange={(e) =>
+                        setFollowUpForm({
+                          ...followUpForm,
+                          dueDate: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-blue-500 outline-hidden"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Priority
+                    </label>
+                    <select
+                      value={followUpForm.priority}
+                      onChange={(e) =>
+                        setFollowUpForm({
+                          ...followUpForm,
+                          priority: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 focus:border-blue-500 outline-hidden bg-white"
+                    >
+                      <option value="low">Low Priority</option>
+                      <option value="medium">Medium Priority</option>
+                      <option value="high">High Priority</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex items-center justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddFollowUpModal(false)}
+                    className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs cursor-pointer"
+                  >
+                    Schedule Task
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {/* MODAL: Manage List Memberships */}
+      {showManageListsModal &&
+        createPortal(
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <FolderOpen className="w-4 h-4 text-blue-600" />
+                  <span>Manage Lists &amp; Segments</span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowManageListsModal(false)}
+                  className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-xs text-slate-500">
+                Select which custom lists and targeted segments{" "}
+                <span className="font-semibold text-slate-800">
+                  {contact.firstName}
+                </span>{" "}
+                belongs to:
+              </p>
+              {allLists.length === 0 ? (
+                <div className="text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                  <p className="text-xs text-slate-500 mb-2">
+                    No custom lists created yet.
+                  </p>
+                  <Link
+                    to="/lists"
+                    className="text-xs font-semibold text-blue-600 hover:underline"
+                  >
+                    Create your first list in Lists &amp; Segments →
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                  {allLists.map((list) => {
+                    const isMember = contactLists.some(
+                      (cl) => cl.id === list.id,
+                    );
+                    return (
+                      <div
+                        key={list.id}
+                        onClick={() =>
+                          handleToggleListMembership(list.id, isMember)
+                        }
+                        className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-colors ${
+                          isMember
+                            ? "bg-blue-50/70 border-blue-300"
+                            : "bg-white border-slate-200 hover:bg-slate-50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className={`w-4 h-4 rounded-md border flex items-center justify-center ${
+                              isMember
+                                ? "bg-blue-600 border-blue-600 text-white"
+                                : "border-slate-300 bg-white"
+                            }`}
+                          >
+                            {isMember && (
+                              <Check className="w-3 h-3 stroke-[3]" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-xs font-semibold text-slate-900">
+                              {list.name}
+                            </p>
+                            {list.description && (
+                              <p className="text-[11px] text-slate-400 truncate max-w-[240px]">
+                                {list.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <span
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${getListColorBadge(list.color)}`}
+                        >
+                          {list.contactsCount || 0} contacts
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="flex items-center justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowManageListsModal(false)}
+                  className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs cursor-pointer"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal &&
+        createPortal(
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+              <div className="w-12 h-12 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-lg font-display font-bold text-slate-900">
+                  Move Contact to Trash?
+                </h3>
+                <p className="text-slate-600 text-sm mt-1 leading-relaxed">
+                  Are you sure you want to delete{" "}
+                  <span className="font-semibold text-slate-900">
+                    {contact.firstName} {contact.lastName || ""}
+                  </span>
+                  ? You can restore this contact at any time from Deleted
+                  Contacts.
+                </p>
+              </div>
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteModal(false)}
+                  className="px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
-                  type="submit"
-                  className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs cursor-pointer"
+                  type="button"
+                  onClick={handleDelete}
+                  className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition-colors cursor-pointer"
                 >
-                  Schedule Task
+                  Yes, Delete Contact
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: Manage List Memberships */}
-      {showManageListsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <FolderOpen className="w-4 h-4 text-blue-600" />
-                <span>Manage Lists & Segments</span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowManageListsModal(false)}
-                className="text-slate-400 hover:text-slate-600 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
             </div>
-
-            <p className="text-xs text-slate-500">
-              Select which custom lists and targeted segments{' '}
-              <span className="font-semibold text-slate-800">{contact.firstName}</span> belongs to:
-            </p>
-
-            {allLists.length === 0 ? (
-              <div className="text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                <p className="text-xs text-slate-500 mb-2">No custom lists created yet.</p>
-                <Link
-                  to="/lists"
-                  className="text-xs font-semibold text-blue-600 hover:underline"
-                >
-                  Create your first list in Lists & Segments →
-                </Link>
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                {allLists.map((list) => {
-                  const isMember = contactLists.some((cl) => cl.id === list.id);
-                  return (
-                    <div
-                      key={list.id}
-                      onClick={() => handleToggleListMembership(list.id, isMember)}
-                      className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-colors ${isMember
-                          ? 'bg-blue-50/70 border-blue-300'
-                          : 'bg-white border-slate-200 hover:bg-slate-50'
-                        }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <div
-                          className={`w-4 h-4 rounded-md border flex items-center justify-center ${isMember ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 bg-white'
-                            }`}
-                        >
-                          {isMember && <Check className="w-3 h-3 stroke-[3]" />}
-                        </div>
-                        <div>
-                          <p className="text-xs font-semibold text-slate-900">{list.name}</p>
-                          {list.description && (
-                            <p className="text-[11px] text-slate-400 truncate max-w-[240px]">
-                              {list.description}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-
-                      <span
-                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${getListColorBadge(
-                          list.color
-                        )}`}
-                      >
-                        {list.contactsCount || 0} contacts
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            <div className="flex items-center justify-end pt-2">
-              <button
-                type="button"
-                onClick={() => setShowManageListsModal(false)}
-                className="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs cursor-pointer"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
-            <div className="w-12 h-12 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center">
-              <AlertTriangle className="w-6 h-6" />
-            </div>
-
-            <div>
-              <h3 className="text-lg font-display font-bold text-slate-900">
-                Move Contact to Trash?
-              </h3>
-              <p className="text-slate-600 text-sm mt-1 leading-relaxed">
-                Are you sure you want to delete{' '}
-                <span className="font-semibold text-slate-900">
-                  {contact.firstName} {contact.lastName || ''}
-                </span>
-                ? You can restore this contact at any time from Deleted Contacts.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition-colors cursor-pointer"
-              >
-                Yes, Delete Contact
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
